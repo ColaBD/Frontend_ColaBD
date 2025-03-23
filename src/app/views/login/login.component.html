@@ -1,1 +1,46 @@
-<p>login works!</p>
+<section class="login-container">
+  <h2 class="title">Hello Again!</h2>
+  <p class="subtitle">Welcome Back You've Been Missed!</p>
+
+  <form class="login-form" [formGroup]="form" (ngSubmit)="login()">
+    <mat-form-field appearance="outline" class="input-email">
+      <mat-label>Enter your e-mail</mat-label>
+      <input matInput placeholder="Placeholder">
+      <mat-hint>E-mail</mat-hint>
+    </mat-form-field>
+
+    <div class="password-field d-flex mt-3">
+      <mat-form-field appearance="outline" class="input-password">
+        <mat-label>Enter your password</mat-label>
+        <input matInput [type]="hide() ? 'password' : 'text'" />
+        <button
+          type="button"
+          mat-icon-button
+          matSuffix
+          (click)="clickEvent($event)"
+          [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+          [attr.aria-pressed]="hide()">
+
+          <i class="bi" [ngClass]="hide() ? 'bi-eye-slash' : 'bi-eye'"></i>
+        </button>
+        <mat-hint>Password</mat-hint>
+      </mat-form-field>
+      <button mat-stroked-button class="reset-password corFundoBtnGradiente text-white">Forget Password?</button>
+    </div>
+
+    <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-5 text-white">Sign In</button>
+
+    <p class="continue-text">( Or Continue With )</p>
+
+    <div class="social-login">
+      <button mat-stroked-button>
+        <i class="bi bi-google icone"></i>
+      </button>
+      <button mat-stroked-button>
+        <i class="bi bi-apple icone"></i>
+      </button>
+    </div>
+
+    <p class="signup-text">Don't have an Account? <br> <a href="/register">SIGN UP</a></p>
+  </form>
+</section>

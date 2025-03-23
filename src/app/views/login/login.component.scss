@@ -1,0 +1,110 @@
+$corFundoBtn: linear-gradient(135deg, #2c2c2c, #565656);
+
+.login-container {
+  
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+
+  .btnSignIn{
+    border-radius: 5px;
+    height: 45px;
+  }
+
+  .title {
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  .subtitle {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .input-email{
+    width: 100%;
+  }
+
+  .input-password{
+    width: 75%;
+    height: 60px;
+    border-radius: 0%; 
+  }
+
+  .reset-password{
+    width: 25%;
+    height: 56px;
+
+    border-radius: 5px;
+  }
+
+  .password-group {
+    .password-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .recovery-password {
+        font-size: 12px;
+        color: #666;
+        text-decoration: none;
+      }
+    }
+  }
+
+  .corFundoBtnGradiente {
+    background: $corFundoBtn;
+  }
+
+  .btn-primary {
+    width: 100%;
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  .icone{
+    font-size: large;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  i{
+    color: black;
+  }
+
+  .continue-text {
+    margin: 15px 0;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .social-login {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+
+    .btn {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  .signup-text {
+    font-size: 14px;
+
+    a {
+      font-weight: bold;
+      text-decoration: none;
+    }
+  }
+}

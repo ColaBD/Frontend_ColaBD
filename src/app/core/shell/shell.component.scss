@@ -1,17 +1,36 @@
-.sidenav-container {
-  height: 100%;
+$corFundoBtn: linear-gradient(135deg, #2c2c2c, #444444);
+
+.header{
+  background: $corFundoBtn;
 }
 
-.sidenav {
-  width: 200px;
+.telas{
+  height: 100vh;
 }
 
-.sidenav .mat-toolbar {
-  background: inherit;
-}
-
-.mat-toolbar.mat-primary {
-  position: sticky;
+.spinner-container {
+  display: flex;
+  justify-content: center;  
+  align-items: center;      
+  position: fixed;
   top: 0;
-  z-index: 1;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  color: #2c2c2c;
+  background-color: rgba(255, 255, 255, 0.7); 
+  z-index: 1050;
+}
+
+.logo {
+  font-size: 14px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.nav-item {
+  text-transform: none;
+  font-size: 14px;
 }
