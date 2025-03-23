@@ -1,0 +1,31 @@
+a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.footer {
+  background-color: #f7fafe; /* Cor de fundo parecida com a da imagem */
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
+  color: #666;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+.social {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.copyright {
+  margin-top: 5px;
+}

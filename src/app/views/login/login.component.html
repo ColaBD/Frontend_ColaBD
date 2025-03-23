@@ -2,7 +2,7 @@
   <h2 class="title">Hello Again!</h2>
   <p class="subtitle">Welcome Back You've Been Missed!</p>
 
-  <form class="login-form" [formGroup]="form" (ngSubmit)="login()">
+  <form [formGroup]="form" (ngSubmit)="login()">
     <mat-form-field appearance="outline" class="input-email">
       <mat-label>Enter your e-mail</mat-label>
       <input matInput placeholder="Placeholder">
@@ -25,7 +25,7 @@
         </button>
         <mat-hint>Password</mat-hint>
       </mat-form-field>
-      <button mat-stroked-button class="reset-password corFundoBtnGradiente text-white">Forget Password?</button>
+      <button type="button" mat-stroked-button class="reset-password corFundoBtnGradiente text-white">Forget Password?</button>
     </div>
 
     <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-5 text-white">Sign In</button>

@@ -3,13 +3,19 @@
     <mat-toolbar class="header text-white">
       <span class="logo fw-bold fs-3">ColaBD</span>
       <span class="spacer"></span>
-      <button mat-button class="nav-item text-white">dashboard</button>
-      <button mat-button class="nav-item text-white">create schema</button>
-      <button mat-button class="nav-item text-white">account</button>
-      <!-- <button mat-button class="nav-item text-white">settings</button> -->
+
+      <button mat-button class="nav-item text-white">
+        <a href="/dashboard">dashboard</a>
+      </button>
+      <button mat-button href="/schema" class="nav-item text-white">
+        <a href="/schema">create schema</a>
+      </button>
+      <button mat-button class="nav-item text-white">
+        <a href="/login">account</a>
+      </button>
     </mat-toolbar>
 
-    <div class="telas">
+    <div>
       <div *ngIf="estaCarregando$ | async; else conteudo" class="spinner-container">
         <div class="spinner-grow" role="status"></div>
       </div>
@@ -18,5 +24,7 @@
         <ng-content></ng-content>
       </ng-template>
     </div>
+
+    <app-footer></app-footer>
   </mat-sidenav-content>
 </mat-sidenav-container>

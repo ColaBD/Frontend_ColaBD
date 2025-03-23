@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ShellComponent } from "./core/shell/shell.component";
+import { FooterComponent } from "./core/footer/footer.component";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ShellComponent],
+  imports: [RouterOutlet, ShellComponent, FooterComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

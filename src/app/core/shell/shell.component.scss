@@ -4,8 +4,14 @@ $corFundoBtn: linear-gradient(135deg, #2c2c2c, #444444);
   background: $corFundoBtn;
 }
 
-.telas{
+mat-sidenav-container{
   height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .spinner-container {

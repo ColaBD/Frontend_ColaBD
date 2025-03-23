@@ -12,7 +12,12 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }), 
     provideRouter(routes),
     provideAnimations(), 
-    provideToastr() ,
-    provideHttpClient(withInterceptors([loadingInterceptor]))
+    provideHttpClient(withInterceptors([loadingInterceptor])),
+    provideToastr({
+      timeOut: 3000,  
+      positionClass: 'toast-bottom-right', // Posição do toast
+      preventDuplicates: true, // Evita toasts duplicados
+      closeButton: true, // Adiciona botão de fechar
+    })
   ]
 };

@@ -24,17 +24,14 @@ export class LoginComponent {
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
-    private loading: LoadingService,
     // private authService: AuthService,
     private toastrService: ToastrService) { }
 
   ngOnInit(): void {
     this.form = this.formBuilder.group({
-      senha: new FormControl('', [Validators.required]),
+      password: new FormControl('', [Validators.required]),
       email: new FormControl('', [Validators.required, Validators.email])
     });
-
-    this.estaCarregando$ = this.loading.estaCarregado();
   }
 
   clickEvent(event: MouseEvent) {
@@ -50,6 +47,8 @@ export class LoginComponent {
 
     //   return;
     // }
+
+    this.processarSucesso();
   }
 
   processarSucesso() {

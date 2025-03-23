@@ -10,6 +10,7 @@ import { ToastrService } from 'ngx-toastr';
 import { LoadingService } from '../spinner/loading.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
+import { FooterComponent } from '../footer/footer.component';
 
 @Component({
   selector: 'app-shell',
@@ -22,7 +23,8 @@ import { CommonModule } from '@angular/common';
     MatSidenavModule,
     MatListModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    FooterComponent
   ]
 })
 export class ShellComponent {
