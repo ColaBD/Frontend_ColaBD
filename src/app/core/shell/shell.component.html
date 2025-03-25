@@ -1,7 +1,10 @@
 <mat-sidenav-container>
   <mat-sidenav-content>
     <mat-toolbar class="header text-white">
-      <span class="logo fw-bold fs-3">ColaBD</span>
+      <a class="navbar-brand" href="#">
+        <img src="logo.png" alt="ColaDB" style="width: 150px">
+      </a>
+
       <span class="spacer"></span>
 
       <button mat-button class="nav-item text-white">
@@ -19,7 +22,7 @@
       <div *ngIf="estaCarregando$ | async; else conteudo" class="spinner-container">
         <div class="spinner-grow" role="status"></div>
       </div>
-  
+
       <ng-template #conteudo>
         <ng-content></ng-content>
       </ng-template>
