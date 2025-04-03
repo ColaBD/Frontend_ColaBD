@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { FooterService } from '../../core/footer/services/footer.service';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [MatButtonModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })

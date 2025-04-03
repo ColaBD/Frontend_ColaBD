@@ -1,0 +1,11 @@
+$height: calc(100vh - 64px);
+
+:host {
+  display: block;
+  height: $height;
+}
+
+div {
+  width: 700px;
+  height: $height;
+}

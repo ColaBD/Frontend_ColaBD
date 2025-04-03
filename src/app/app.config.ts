@@ -14,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(), 
     provideHttpClient(withInterceptors([loadingInterceptor])),
     provideToastr({
-      timeOut: 3000,  
+      timeOut: 1500,  
       positionClass: 'toast-bottom-right', // Posição do toast
       preventDuplicates: true, // Evita toasts duplicados
       closeButton: true, // Adiciona botão de fechar

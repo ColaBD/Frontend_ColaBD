@@ -3,14 +3,14 @@
   <p class="subtitle">Welcome Back You've Been Missed!</p>
 
   <form [formGroup]="form" (ngSubmit)="login()">
-    <mat-form-field appearance="outline" class="input-email">
+    <mat-form-field appearance="outline" class="input-email mt-3">
       <mat-label>Enter your e-mail</mat-label>
-      <input matInput placeholder="Placeholder">
+      <input matInput placeholder="Username">
       <mat-hint>E-mail</mat-hint>
     </mat-form-field>
 
     <div class="password-field d-flex mt-3">
-      <mat-form-field appearance="outline" class="input-password">
+      <mat-form-field appearance="outline" class="input-password mt-2">
         <mat-label>Enter your password</mat-label>
         <input matInput [type]="hide() ? 'password' : 'text'" />
         <button
@@ -25,10 +25,14 @@
         </button>
         <mat-hint>Password</mat-hint>
       </mat-form-field>
-      <button type="button" mat-stroked-button class="reset-password corFundoBtnGradiente text-white">Forget Password?</button>
+    </div>
+    <div class="reset-password">
+      <a mat-flat-button type="button" href="/register" class="link-reset-password">
+        Forget Password?
+      </a>
     </div>
 
-    <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-5 text-white">Sign In</button>
+    <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-4 text-white">Sign In</button>
 
     <p class="continue-text">( Or Continue With )</p>
 
