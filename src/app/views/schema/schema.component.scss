@@ -6,3 +6,33 @@
 .tela{
   height: calc(100vh - 64px);
 }
+
+.btn-envio{
+  height: 40px;
+  border-radius: 5px;
+  margin: 10px;
+  margin-left: 15px;
+}
+
+.select-sgbd-destino{
+  width: 15%;
+  height: 40px;
+ 
+}
+
+h5{
+  margin: 5px;
+}
+
+.footer{
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #333;
+  color: white;
+  // padding: 15px;
+
+  justify-content: end;
+  align-items: center;
+}
