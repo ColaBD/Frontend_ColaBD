@@ -1,0 +1,121 @@
+.diagram-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.diagram {
+  width: 100%;
+  height: 100%;
+  background-color: #f8f9fa;
+}
+
+.diagram-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 5px;
+  padding: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background-color: white;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+  
+  &.active {
+    background-color: #e2f0ff;
+    border-color: #82c8fc;
+    color: #0066cc;
+  }
+  
+  span.material-icons {
+    font-size: 20px;
+    color: #444;
+  }
+  
+  &.active span.material-icons {
+    color: #0066cc;
+  }
+}
+
+/* Relationship link styles */
+:host ::ng-deep {
+  .joint-link .connection {
+    stroke: #444;
+    stroke-width: 2px;
+  }
+  
+  .joint-link .connection-wrap {
+    stroke: transparent;
+    stroke-width: 10px;
+    cursor: pointer;
+  }
+  
+  .joint-link .marker-vertex {
+    fill: #1a73e8;
+    stroke: none;
+    r: 5;
+  }
+  
+  .joint-link .marker-vertex:hover {
+    fill: #0066cc;
+    r: 7;
+  }
+  
+  .joint-link .marker-arrowhead {
+    fill: #444;
+    stroke: none;
+  }
+  
+  .joint-link:hover .connection {
+    stroke: #1a73e8;
+    stroke-width: 3px;
+  }
+}
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+:host ::ng-deep {
+  .joint-paper {
+    border: 1px solid #ddd;
+    margin: 0;
+    overflow: hidden;
+  }
+  
+  .joint-element {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  }
+  
+  .joint-link {
+    .connection-wrap {
+      stroke: transparent;
+      stroke-width: 15;
+      cursor: pointer;
+    }
+    
+    &:hover .connection-wrap {
+      stroke: rgba(21, 48, 58, 0.1);
+    }
+  }
+} 

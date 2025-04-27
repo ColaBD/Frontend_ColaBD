@@ -1,0 +1,24 @@
+<div class="diagram-container">
+  <div #diagram class="joint-canvas"></div>
+  
+  <div class="diagram-controls">
+    <button class="control-btn zoom-in" (click)="zoomIn()" matTooltip="Aumentar Zoom">
+      <i class="bi bi-zoom-in"></i>
+    </button>
+  
+    <button class="control-btn zoom-out" (click)="zoomOut()" matTooltip="Diminuir Zoom">
+      <i class="bi bi-zoom-out"></i>
+    </button>
+  
+    <button class="control-btn fit-content" (click)="fitContent()" matTooltip="Ajustar ao Conteúdo">
+      <i class="bi bi-arrows-fullscreen"></i>
+    </button>
+  
+    <button class="control-btn link" (click)="toggleLinkingMode()" [class.active]="isLinkingMode" matTooltip="Criar Relacionamento">
+      <i class="bi bi-link-45deg"></i>
+    </button>
+  </div>
+  
+  
+  
+</div> 

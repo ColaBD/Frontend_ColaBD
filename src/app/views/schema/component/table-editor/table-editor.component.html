@@ -1,0 +1,81 @@
+<div class="table-editor">
+  <div class="tabs-container">
+    <mat-tab-group [(selectedIndex)]="selectedTabIndex">
+      <mat-tab label="Tabelas ({{tables.length}})">
+        <div class="tab-content">
+          <div class="search-bar">
+            <input type="text" placeholder="Buscar..." class="search-input">
+            <button class="search-button">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          
+          <div class="action-button">
+            <button mat-button class="add-table-btn" (click)="addTable()">
+              <i class="bi bi-plus"></i> Adicionar tabela
+            </button>
+          </div>
+          
+          <div class="tables-list" cdkScrollable>
+            @for (table of tables; track $index) {
+              <div class="table-item" [class.active]="selectedTabIndex === $index">
+                <mat-expansion-panel>
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>
+                      {{table.name}}
+                    </mat-panel-title>
+                  </mat-expansion-panel-header>
+                  
+                  <div class="table-details">
+                    <div class="input-group">
+                      <label>Nome:</label>
+                      <input type="text" [(ngModel)]="table.name" (change)="updateTable(table)">
+                    </div>
+                    
+                    <div class="columns-container">
+                      @for (column of table.columns; track $index) {
+                        <div class="column-row">
+                          <div class="column-name">
+                            <input type="text" [(ngModel)]="column.name" (change)="updateTable(table)">
+                          </div>
+                          <div class="column-type">
+                            <select [(ngModel)]="column.type" (change)="updateTable(table)">
+                              <option value="">Type</option>
+                              @for (type of dataTypes; track $index) {
+                                <option [value]="type">{{type}}</option>
+                              }
+                            </select>
+                          </div>
+                          <div class="column-actions">
+                            <button mat-icon-button matTooltip="Ajuda" class="help-btn">
+                              <i class="bi bi-question-circle"></i>
+                            </button>
+                            <button mat-icon-button matTooltip="Chave" class="key-btn">
+                              <i class="bi bi-key"></i>
+                            </button>
+                            <button mat-icon-button matTooltip="Remover coluna" (click)="removeColumn(table, $index)">
+                              <i class="bi bi-x-lg"></i>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    </div>
+
+                    <div class="table-actions">
+                      <button mat-button class="add-column-btn" (click)="addColumn(table)">
+                        Adicionar campo
+                      </button>
+                      <button mat-icon-button class="remove-table-btn" matTooltip="Remover tabela" (click)="removeTable(table.id, $index)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </mat-expansion-panel>
+              </div>
+            }
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>
