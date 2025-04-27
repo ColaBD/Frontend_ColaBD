@@ -1,11 +1,26 @@
 <section class="d-flex tela">
-  <div class="script">
-    <app-code-editor></app-code-editor>
+  <div class="editor-container">
+    <div class="editor-nav">
+      <div class="nav-item" [class.active]="activeEditor === 'table'" (click)="setActiveEditor('table')">
+        <span>Edição de Tabelas</span>
+      </div>
+      <div class="nav-item" [class.active]="activeEditor === 'code'" (click)="setActiveEditor('code')">
+        <span>SQL Schema</span>
+      </div>
+    </div>
+    <div class="editor-content">
+      <div *ngIf="activeEditor === 'table'" class="table-editor-view">
+        <app-table-editor></app-table-editor>
+      </div>
+      <div *ngIf="activeEditor === 'code'" class="code-editor-view">
+        <app-code-editor></app-code-editor>
+      </div>
+    </div>
   </div>
-  <div class="diagrama">
-    aaaa
+  <div class="diagram-view">
+    <app-diagram></app-diagram>
   </div>
-  <footer class="footer d-flex">
+  <!-- <footer class="footer d-flex">
     <h5>DBMS target:</h5>
     <select class="form-select form-select-sm select-sgbd-destino">
       <option selected>Select the DBMS target</option>
@@ -17,5 +32,5 @@
       <i class="bi bi-send"></i>
       Send
     </button>
-  </footer>
+  </footer> -->
 </section>

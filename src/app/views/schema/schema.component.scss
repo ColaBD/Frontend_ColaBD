@@ -7,6 +7,52 @@
   height: calc(100vh - 64px);
 }
 
+.editor-container {
+  width: 30%;
+  height: 100%;
+  border-right: 1px solid #ddd;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-nav {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  background-color: #15303a;
+}
+
+.nav-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  
+  &.active {
+    border-bottom: 2px solid #0066cc;
+    font-weight: 500;
+  }
+  
+  &:hover:not(.active) {
+    background-color: #0f1a2b;
+  }
+}
+
+.editor-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.table-editor-view, .code-editor-view {
+  height: 100%;
+}
+
+.diagram-view {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 .btn-envio{
   height: 40px;
   border-radius: 5px;
@@ -17,7 +63,6 @@
 .select-sgbd-destino{
   width: 15%;
   height: 40px;
- 
 }
 
 h5{

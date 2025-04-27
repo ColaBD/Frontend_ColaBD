@@ -1,0 +1,215 @@
+.table-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f5f5f5;
+  border-right: 1px solid #ddd;
+}
+
+.tabs-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  ::ng-deep .mat-mdc-tab-header {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  ::ng-deep .mat-mdc-tab-body-wrapper {
+    flex: 1;
+    overflow: auto;
+  }
+}
+
+.tab-content {
+  padding: 0;
+  height: 100%;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  
+  .search-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+    font-size: 14px;
+  }
+  
+  .search-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+}
+
+.action-button {
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  
+  .add-table-btn {
+    background-color: #f0f0f0;
+    color: #0066cc;
+    border-radius: 4px;
+    
+    mat-icon {
+      margin-right: 5px;
+    }
+  }
+}
+
+.tables-list {
+  .table-item {
+    margin-bottom: 2px;
+    
+    &.active {
+      background-color: #e6f2ff;
+    }
+    
+    ::ng-deep .mat-expansion-panel {
+      box-shadow: none;
+      border-radius: 0;
+      background-color: transparent;
+      
+      .mat-expansion-panel-header {
+        padding: 0 16px;
+        height: 48px;
+      }
+    }
+  }
+}
+
+.table-details {
+  padding: 16px;
+  
+  .input-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    
+    label {
+      font-weight: 500;
+      margin-right: 10px;
+      min-width: 60px;
+    }
+    
+    input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+    }
+  }
+}
+
+.columns-container {
+  margin-bottom: 16px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  .column-row {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background-color: #fff7f5;
+    border-bottom: 1px solid #eee;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .column-name {
+      flex: 1;
+      margin-right: 8px;
+      
+      input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+    }
+    
+    .column-type {
+      width: 120px;
+      margin-right: 8px;
+      
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+      }
+    }
+    
+    .column-actions {
+      display: flex;
+      align-items: center;
+      
+      button {
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        
+        &.help-btn {
+          color: #0066cc;
+          background-color: #0066cc1a;
+        }
+        
+        &.key-btn {
+          color: #555;
+        }
+        
+        &.more-btn {
+          color: #555;
+        }
+      }
+    }
+  }
+}
+
+.table-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  
+  .add-column-btn {
+    background-color: #f0f0f0;
+    color: #0066cc;
+  }
+  
+  .remove-table-btn {
+    color: #ff4444;
+  }
+}
+
+.add-index-btn {
+  margin-top: 8px;
+  background-color: #f0f0f0;
+  color: #0066cc;
+}
+
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+// Additional styling for second row panel (Tabela_1)
+.tables-list .table-item:last-child {
+  ::ng-deep .mat-expansion-panel {
+    border-top: 1px solid #eee;
+  }
+} 

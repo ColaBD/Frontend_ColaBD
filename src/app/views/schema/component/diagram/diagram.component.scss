@@ -1,0 +1,77 @@
+.diagram-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #f8f9fa;
+  position: relative;
+}
+
+.joint-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.diagram-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 10;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #15303a;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #0f1a2b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .material-icons {
+    font-size: 20px;
+  }
+}
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+:host ::ng-deep {
+  .joint-paper {
+    border: 1px solid #ddd;
+    margin: 0;
+    overflow: hidden;
+  }
+  
+  .joint-element {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  }
+  
+  .joint-link {
+    .connection-wrap {
+      stroke: transparent;
+      stroke-width: 15;
+      cursor: pointer;
+    }
+    
+    &:hover .connection-wrap {
+      stroke: rgba(21, 48, 58, 0.1);
+    }
+  }
+} 
