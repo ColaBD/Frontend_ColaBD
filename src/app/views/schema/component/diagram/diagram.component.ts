@@ -1,5 +1,6 @@
 import { Component, ElementRef, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import * as joint from 'jointjs';
 import * as $ from 'jquery';
 
@@ -9,7 +10,7 @@ import * as $ from 'jquery';
 @Component({
   selector: 'app-diagram',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatTooltipModule],
   templateUrl: './diagram.component.html',
   styleUrl: './diagram.component.scss'
 })
@@ -43,9 +44,7 @@ export class DiagramComponent implements AfterViewInit {
       background: {
         color: '#f8f9fa'
       },
-      interactive: {
-        vertexAdd: false
-      }
+      interactive: true
     });
 
     // Set paper to take available space
@@ -60,32 +59,45 @@ export class DiagramComponent implements AfterViewInit {
     window.addEventListener('resize', resize);
 
     // Add panning
-    this.enablePanning();
+    this.setupPanning();
   }
 
-  private enablePanning(): void {
-    let dragStartPosition: { x: number, y: number } | null = null;
+  private setupPanning(): void {
+    let isDragging = false;
+    let lastClientX = 0;
+    let lastClientY = 0;
     
+    // Enable panning on mousedown on blank area
     this.paper.on('blank:pointerdown', (evt: any, x: number, y: number) => {
-      dragStartPosition = { x, y };
-      this.paper.el.style.cursor = 'grabbing';
-    });
-
-    this.paper.on('blank:pointermove', (evt: any, x: number, y: number) => {
-      if (dragStartPosition) {
-        const dx = x - dragStartPosition.x;
-        const dy = y - dragStartPosition.y;
-        
-        const currentTranslate = this.paper.translate();
-        this.paper.translate(currentTranslate.tx + dx, currentTranslate.ty + dy);
-        
-        dragStartPosition = { x, y };
+      isDragging = true;
+      if (evt.originalEvent) {
+        lastClientX = evt.originalEvent.clientX || 0;
+        lastClientY = evt.originalEvent.clientY || 0;
+      } else {
+        lastClientX = x;
+        lastClientY = y;
       }
+      document.body.style.cursor = 'grabbing';
     });
-
-    this.paper.on('blank:pointerup', () => {
-      dragStartPosition = null;
-      this.paper.el.style.cursor = 'default';
+    
+    // Disable panning on mouseup
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      document.body.style.cursor = 'default';
+    });
+    
+    // Handle panning on mousemove
+    document.addEventListener('mousemove', (event: MouseEvent) => {
+      if (!isDragging) return;
+      
+      const dx = event.clientX - lastClientX;
+      const dy = event.clientY - lastClientY;
+      
+      const currentTranslate = this.paper.translate();
+      this.paper.translate(currentTranslate.tx + dx, currentTranslate.ty + dy);
+      
+      lastClientX = event.clientX;
+      lastClientY = event.clientY;
     });
   }
 
@@ -115,43 +127,36 @@ export class DiagramComponent implements AfterViewInit {
   private createSampleDiagram(): void {
     // Define table shapes
     const Table = joint.dia.Element.define('erp.Table', {
-      attrs: {
-        '.': { magnet: false },
-        '.table-header': {
-          fill: '#15303a',
-          stroke: '#15303a',
-          strokeWidth: 1,
-          height: 30,
-          'pointer-events': 'none'
-        },
-        '.table-body': {
-          fill: '#ffffff',
-          stroke: '#15303a',
-          strokeWidth: 1,
-          'pointer-events': 'none'
-        },
-        '.table-name': {
-          'font-size': 12,
-          'font-family': 'Arial',
-          'font-weight': 'bold',
-          fill: '#ffffff',
-          'text-anchor': 'middle',
-          'ref-x': .5,
-          'ref-y': 15,
-          'y-alignment': 'middle',
-          'pointer-events': 'none'
-        },
-        '.column-container': {
-          'pointer-events': 'none'
-        },
-        '.column': {
-          'font-size': 11,
-          'font-family': 'Arial',
-          fill: '#333333',
-          'ref-x': 10,
-          'pointer-events': 'none'
-        }
-      }
+      // attrs: {
+      //   '.': { magnet: false },
+      //   '.table-header': {
+      //     fill: '#f5f5f5',
+      //     stroke: '#d3d3d3',
+      //     strokeWidth: 1,
+      //     height: 30,
+      //     rx: 4,
+      //     ry: 4,
+      //     'pointer-events': 'none'
+      //   },
+      //   '.table-body': {
+      //     fill: '#ffffff',
+      //     stroke: '#d3d3d3',
+      //     strokeWidth: 1,
+      //     rx: 0,
+      //     ry: 0,
+      //     'pointer-events': 'none'
+      //   },
+      //   '.table-name': {
+      //     'font-size': 14,
+      //     'font-weight': 'bold',
+      //     fill: '#333333',
+      //     'text-anchor': 'middle',
+      //     'ref-x': .5,
+      //     'ref-y': 18,
+      //     'y-alignment': 'middle',
+      //     'pointer-events': 'none'
+      //   }
+      // }
     }, {
       markup: [
         { tagName: 'rect', selector: 'table-header' },
@@ -161,163 +166,153 @@ export class DiagramComponent implements AfterViewInit {
       ]
     });
 
-    // Create tables
-    const createTable = (name: string, columns: string[], position: { x: number, y: number }): joint.dia.Element => {
+    // Create and add tables to graph first
+    const tables: joint.dia.Element[] = [];
+    
+    // Helper function to create a table
+    const createTable = (name: string, columns: Array<{name: string, type: string}>, position: { x: number, y: number }): joint.dia.Element => {
       const table = new Table({
         position,
-        size: { width: 180, height: 30 + columns.length * 20 }
+        size: { width: 200, height: 44 + columns.length * 26 }
       });
       
       table.attr({
-        'table-header': { width: 180, height: 30 },
-        'table-body': { width: 180, height: columns.length * 20, 'ref-y': 30 },
-        'table-name': { text: name }
+        'root': {
+          title: 'Tabela',
+        },
+        'table-header': {
+          width: 200,
+          height: 36,
+          fill: '#ababab',
+          rx: 6,  
+          ry: 6
+        },
+        'table-body': {
+          width: 200,
+          height: columns.length * 26 + 8,
+          'ref-y': 36,  
+          fill: '#f5f5f5',
+          rx: 6,
+          ry: 6
+        },
+        'table-name': {
+          text: name,   
+          fontSize: 14,
+          fontWeight: 'bold',
+          fill: '#303030',
+          ref: 'table-header', 
+          refX: '50%',
+          refY: '50%',
+          textAnchor: 'middle',
+          yAlignment: 'middle',
+        },
       });
-
-      // Add columns
-      const columnContainer = table.findView(this.paper)?.findBySelector('column-container')[0];
-      if (columnContainer) {
-        columns.forEach((column, i) => {
-          const columnText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          columnText.setAttribute('class', 'column');
-          columnText.setAttribute('y', (30 + i * 20 + 15).toString());
-          columnText.textContent = column;
-          columnContainer.appendChild(columnText);
-        });
-      }
-
+      
+      
+      
       return table;
     };
 
-    // Sample tables
-    const table1 = createTable('Customers', [
-      'id_customer (PK)',
-      'name',
-      'email',
-      'phone'
+    // Create tables
+    const customers = createTable('Tabela 1', [
+      { name: 'A1', type: 'INT' },
+      { name: 'B', type: '?' }
     ], { x: 100, y: 100 });
 
-    const table2 = createTable('Orders', [
-      'id_order (PK)',
-      'id_customer (FK)',
-      'order_date',
-      'total'
+    const orders = createTable('Orders', [
+      { name: 'id_order', type: 'PK' },
+      { name: 'id_customer', type: 'FK' },
+      { name: 'order_date', type: '' },
+      { name: 'total', type: '' }
     ], { x: 400, y: 100 });
 
-    const table3 = createTable('Products', [
-      'id_product (PK)',
-      'name',
-      'price',
-      'description'
+    const products = createTable('Products', [
+      { name: 'id_product', type: 'PK' },
+      { name: 'name', type: '' },
+      { name: 'price', type: '' },
+      { name: 'description', type: '' }
     ], { x: 700, y: 100 });
 
-    const table4 = createTable('Order_Items', [
-      'id_order_item (PK)',
-      'id_order (FK)',
-      'id_product (FK)',
-      'quantity',
-      'price'
+    const orderItems = createTable('Order_Items', [
+      { name: 'id_order_item', type: 'PK' },
+      { name: 'id_order', type: 'FK' },
+      { name: 'id_product', type: 'FK' },
+      { name: 'quantity', type: '' },
+      { name: 'price', type: '' }
     ], { x: 550, y: 300 });
-
-    // Add tables to graph
-    this.graph.addCells([table1, table2, table3, table4]);
-
-    // Create relationships
-    const link1 = new joint.shapes.standard.Link({
-      source: { id: table1.id, anchor: { name: 'right' } },
-      target: { id: table2.id, anchor: { name: 'left' } },
-      attrs: {
-        line: {
-          stroke: '#15303a',
-          'stroke-width': 2,
-          targetMarker: {
-            type: 'path',
-            d: 'M 10 -5 0 0 10 5 z'
-          }
-        }
-      },
-      labels: [
-        {
-          position: 0.5,
-          attrs: {
-            text: {
-              text: '1:n',
-              'font-size': 12,
-              'font-family': 'Arial'
-            },
-            rect: {
-              fill: 'white'
-            }
-          }
-        }
-      ]
-    });
-
-    const link2 = new joint.shapes.standard.Link({
-      source: { id: table2.id, anchor: { name: 'bottom' } },
-      target: { id: table4.id, anchor: { name: 'top' } },
-      vertices: [{ x: 400, y: 250 }],
-      attrs: {
-        line: {
-          stroke: '#15303a',
-          'stroke-width': 2,
-          targetMarker: {
-            type: 'path',
-            d: 'M 10 -5 0 0 10 5 z'
-          }
-        }
-      },
-      labels: [
-        {
-          position: 0.5,
-          attrs: {
-            text: {
-              text: '1:n',
-              'font-size': 12,
-              'font-family': 'Arial'
-            },
-            rect: {
-              fill: 'white'
-            }
-          }
-        }
-      ]
-    });
-
-    const link3 = new joint.shapes.standard.Link({
-      source: { id: table3.id, anchor: { name: 'bottom' } },
-      target: { id: table4.id, anchor: { name: 'right' } },
-      vertices: [{ x: 700, y: 320 }],
-      attrs: {
-        line: {
-          stroke: '#15303a',
-          'stroke-width': 2,
-          targetMarker: {
-            type: 'path',
-            d: 'M 10 -5 0 0 10 5 z'
-          }
-        }
-      },
-      labels: [
-        {
-          position: 0.5,
-          attrs: {
-            text: {
-              text: '1:n',
-              'font-size': 12,
-              'font-family': 'Arial'
-            },
-            rect: {
-              fill: 'white'
-            }
-          }
-        }
-      ]
-    });
-
-    this.graph.addCells([link1, link2, link3]);
     
-    // Auto fit content when diagram is loaded
-    setTimeout(() => this.fitContent(), 100);
+    // Add all tables to graph at once
+    this.graph.addCells([customers, orders, products, orderItems]);
+    
+    // Add columns to each table after they are in the graph
+    this.addColumnsToTable(customers, [
+      { name: 'A1', type: 'INT' },
+      { name: 'B', type: '?' }
+    ]);
+    
+    this.addColumnsToTable(orders, [
+      { name: 'id_order', type: 'PK' },
+      { name: 'id_customer', type: 'FK' },
+      { name: 'order_date', type: '' },
+      { name: 'total', type: '' }
+    ]);
+    
+    this.addColumnsToTable(products, [
+      { name: 'id_product', type: 'PK' },
+      { name: 'name', type: '' },
+      { name: 'price', type: '' },
+      { name: 'description', type: '' }
+    ]);
+    
+    this.addColumnsToTable(orderItems, [
+      { name: 'id_order_item', type: 'PK' },
+      { name: 'id_order', type: 'FK' },
+      { name: 'id_product', type: 'FK' },
+      { name: 'quantity', type: '' },
+      { name: 'price', type: '' }
+    ]);
+  }
+  
+  private addColumnsToTable(table: joint.dia.Element, columns: Array<{name: string, type: string}>): void {
+    const view = this.paper.findViewByModel(table);
+    if (!view) return;
+    
+    const columnContainer = view.findBySelector('column-container')[0];
+    if (!columnContainer) return;
+    
+    columns.forEach((column, i) => {
+      // Create circle bullet
+      const bullet = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bullet.setAttribute('cx', '16');
+      bullet.setAttribute('cy', (46 + i * 26).toString());
+      bullet.setAttribute('r', '4');
+      bullet.setAttribute('fill', '#3498db');
+      columnContainer.appendChild(bullet);
+      
+      // Create column name
+      const columnName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      columnName.setAttribute('class', 'column-name');
+      columnName.setAttribute('x', '30');
+      columnName.setAttribute('y', (50 + i * 26).toString());
+      columnName.setAttribute('font-size', '12');
+      columnName.setAttribute('font-family', 'Arial, sans-serif');
+      columnName.setAttribute('fill', '#333333');
+      columnName.textContent = column.name;
+      columnContainer.appendChild(columnName);
+      
+      // Create column type (right-aligned)
+      if (column.type) {
+        const columnType = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        columnType.setAttribute('class', 'column-type');
+        columnType.setAttribute('x', '180');
+        columnType.setAttribute('y', (50 + i * 26).toString());
+        columnType.setAttribute('font-size', '12');
+        columnType.setAttribute('font-family', 'Arial, sans-serif');
+        columnType.setAttribute('fill', '#777777');
+        columnType.setAttribute('text-anchor', 'end');
+        columnType.textContent = column.type;
+        columnContainer.appendChild(columnType);
+      }
+    });
   }
 } 

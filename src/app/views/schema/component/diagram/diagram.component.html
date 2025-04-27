@@ -2,14 +2,16 @@
   <div #diagram class="joint-canvas"></div>
   
   <div class="diagram-controls">
-    <button class="control-btn zoom-in" title="Zoom In" (click)="zoomIn()">
-      <span class="material-icons">add</span>
+    <button class="control-btn zoom-in" (click)="zoomIn()" matTooltip="Aumentar Zoom">
+      <span class="material-icons">+</span>
     </button>
-    <button class="control-btn zoom-out" title="Zoom Out" (click)="zoomOut()">
-      <span class="material-icons">remove</span>
+    <button class="control-btn zoom-out" (click)="zoomOut()" matTooltip="Diminuir Zoom">
+      <span class="material-icons">-</span>
     </button>
-    <button class="control-btn fit-content" title="Fit Content" (click)="fitContent()">
-      <span class="material-icons">fit_screen</span>
+    <button class="control-btn fit-content" (click)="fitContent()" matTooltip="Ajustar ao Conteúdo">
+      <span class="material-icons">[ ]</span>
     </button>
   </div>
+  
+  
 </div> 
