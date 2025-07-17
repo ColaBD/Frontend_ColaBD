@@ -3,12 +3,12 @@
     <mat-tab-group [(selectedIndex)]="selectedTabIndex">
       <mat-tab label="Tabelas ({{tables.length}})">
         <div class="tab-content">
-          <div class="search-bar">
+          <!-- <div class="search-bar">
             <input type="text" placeholder="Buscar..." class="search-input">
             <button class="search-button">
               <i class="bi bi-search"></i>
             </button>
-          </div>
+          </div> -->
           
           <div class="action-button">
             <button mat-button class="add-table-btn" (click)="addTable()">
@@ -17,8 +17,8 @@
           </div>
           
           <div class="tables-list" cdkScrollable>
-            @for (table of tables; track $index) {
-              <div class="table-item" [class.active]="selectedTabIndex === $index">
+            @for (table of tables; track table.id; let i = $index) {
+              <div class="table-item">
                 <mat-expansion-panel>
                   <mat-expansion-panel-header>
                     <mat-panel-title>
@@ -33,27 +33,46 @@
                     </div>
                     
                     <div class="columns-container">
-                      @for (column of table.columns; track $index) {
+                      @for (column of table.columns; track column.name; let j = $index) {
                         <div class="column-row">
                           <div class="column-name">
                             <input type="text" [(ngModel)]="column.name" (change)="updateTable(table)">
                           </div>
                           <div class="column-type">
-                            <select [(ngModel)]="column.type" (change)="updateTable(table)">
+                            <select [(ngModel)]="column.type" (change)="onTypeChange(table, column)">
                               <option value="">Type</option>
-                              @for (type of dataTypes; track $index) {
+                              @for (type of dataTypes; track type) {
                                 <option [value]="type">{{type}}</option>
                               }
                             </select>
                           </div>
+                          <div class="column-length" *ngIf="column.type === 'VARCHAR' || column.type === 'CHAR'">
+                            <input type="number" 
+                                   [(ngModel)]="column.length" 
+                                   (change)="onLengthChange(table, column)"
+                                   placeholder="Length"
+                                   min="1"
+                                   max="65535">
+                          </div>
                           <div class="column-actions">
-                            <button mat-icon-button matTooltip="Ajuda" class="help-btn">
-                              <i class="bi bi-question-circle"></i>
+                            <button mat-icon-button matTooltip="Não Nulo" class="notnull-btn" 
+                                    [class.notnull-btn-active]="column.isNotNull" 
+                                    [disabled]="column.isPrimaryKey"
+                                    (click)="toggleNotNull(table, j)">
+                              <i class="bi bi-exclamation-circle"></i>
                             </button>
-                            <button mat-icon-button matTooltip="Chave" class="key-btn">
+                            <button mat-icon-button matTooltip="Chave" class="key-btn" 
+                                    [class.active]="column.isPrimaryKey" 
+                                    (click)="togglePrimaryKey(table, j)">
                               <i class="bi bi-key"></i>
                             </button>
-                            <button mat-icon-button matTooltip="Remover coluna" (click)="removeColumn(table, $index)">
+                            <button mat-icon-button matTooltip="Unique" class="unique-btn" 
+                                    [class.unique-btn-active]="column.isUnique" 
+                                    [disabled]="column.isPrimaryKey"
+                                    (click)="toggleUnique(table, j)">
+                              <i class="bi bi-lock"></i>
+                            </button>
+                            <button mat-icon-button matTooltip="Remover coluna" (click)="removeColumn(table, j)">
                               <i class="bi bi-x-lg"></i>
                             </button>
                           </div>
@@ -61,16 +80,108 @@
                       }
                     </div>
 
-                    <div class="table-actions">
+                                        <div class="table-actions">
                       <button mat-button class="add-column-btn" (click)="addColumn(table)">
                         Adicionar campo
                       </button>
-                      <button mat-icon-button class="remove-table-btn" matTooltip="Remover tabela" (click)="removeTable(table.id, $index)">
+                      <button mat-icon-button class="remove-table-btn" matTooltip="Remover tabela" (click)="removeTable(table.id, i)">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
+
+                    
+
                   </div>
                 </mat-expansion-panel>
+              </div>
+            }
+          </div>
+        </div>
+      </mat-tab>
+      
+      <mat-tab label="Índices ({{totalIndexesCount}})">
+        <div class="tab-content">
+          <div class="indexes-tab-content" cdkScrollable>
+            @if (tables.length > 0) {
+              @for (table of tables; track table.id) {
+                <div class="table-indexes-section">
+                  <div class="table-header">
+                    <h3>{{table.name}}</h3>
+                    <span class="indexes-count">({{table.indices?.length || 0}} índices)</span>
+                  </div>
+                  
+                  <div class="indexes-content">
+                    @if ((table.indices?.length || 0) > 0) {
+                      @for (index of table.indices; track index.id) {
+                        <div class="index-row">
+                          <div class="index-fields">
+                            <div class="index-name">
+                              <label>Nome do índice:</label>
+                              <input type="text" 
+                                     [(ngModel)]="index.name" 
+                                     (change)="updateIndex(table, index)"
+                                     placeholder="Nome do índice">
+                            </div>
+                            
+                            <div class="index-columns">
+                              <label>Colunas incluídas:</label>
+                              <div class="columns-checkboxes">
+                                @for (column of table.columns; track column.name) {
+                                  <label class="checkbox-label">
+                                    <input type="checkbox" 
+                                           [checked]="index.columns.includes(column.name)"
+                                           (change)="handleIndexColumnChange($event, table, index, column.name)">
+                                    {{column.name}}
+                                  </label>
+                                }
+                              </div>
+                            </div>
+                            
+                            <div class="index-type">
+                              <label>Tipo de índice:</label>
+                              <select [(ngModel)]="index.type" (change)="updateIndex(table, index)">
+                                @for (type of indexTypes; track type) {
+                                  <option [value]="type">{{type}}</option>
+                                }
+                              </select>
+                            </div>
+                            
+                            <div class="index-unique">
+                              <label class="checkbox-label">
+                                <input type="checkbox" 
+                                       [(ngModel)]="index.isUnique" 
+                                       (change)="updateIndex(table, index)">
+                                Único?
+                              </label>
+                            </div>
+                          </div>
+                          
+                          <div class="index-actions">
+                            <button mat-icon-button 
+                                    matTooltip="Remover índice" 
+                                    (click)="removeIndex(table, index.id)">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      }
+                    } @else {
+                      <div class="no-indexes">
+                        <p>Nenhum índice definido para esta tabela</p>
+                      </div>
+                    }
+                    
+                    <div class="add-index-container">
+                      <button mat-button class="add-index-btn" (click)="addIndex(table)">
+                        <i class="bi bi-plus"></i> Adicionar índice
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="no-tables">
+                <p>Nenhuma tabela criada. Vá para a aba "Tabelas" para criar uma tabela primeiro.</p>
               </div>
             }
           </div>

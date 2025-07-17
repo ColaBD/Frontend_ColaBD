@@ -34,11 +34,17 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   private readonly minScale: number = 0.4;
   private readonly maxScale: number = 2;
   private readonly scaleStep: number = 0.1;
+  private readonly wheelZoomSensitivity: number = 0.1;
   private tableElementsMap = new Map<string, joint.dia.Element>();
   private relationshipLinksMap = new Map<string, joint.dia.Link>();
   private subscription: Subscription = new Subscription();
   isLinkingMode: boolean = false;
   private sourceElement: joint.dia.Element | null = null;
+  private resizeObserver?: ResizeObserver;
+  private resizeHandler?: () => void;
+  private wheelHandler?: (event: WheelEvent) => void;
+  private lastWheelTime: number = 0;
+  private readonly wheelThrottleMs: number = 16; // ~60fps
 
   constructor(private schemaService: SchemaService) { }
 
@@ -50,6 +56,21 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    
+    // Clean up ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    
+    // Clean up window resize listener
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
+    
+    // Clean up wheel event listener
+    if (this.wheelHandler) {
+      this.diagramElement.nativeElement.removeEventListener('wheel', this.wheelHandler);
+    }
   }
 
   private initializeJointJs(): void {
@@ -87,12 +108,33 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       this.paper.setDimensions(parentWidth, parentHeight);
     };
 
-    // Initial resize and add event listener
+    // Initial resize
     resize();
+    
+    // Set up ResizeObserver to watch for container size changes
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Use requestAnimationFrame to ensure the DOM has been updated
+        requestAnimationFrame(() => {
+          resize();
+        });
+      }
+    });
+    
+    // Start observing the diagram container
+    this.resizeObserver.observe(this.diagramElement.nativeElement);
+    
+    // Also listen to window resize for cases when window itself is resized
     window.addEventListener('resize', resize);
+    
+    // Store the resize function for cleanup
+    this.resizeHandler = resize;
 
     // Add panning
     this.setupPanning();
+    
+    // Add wheel zoom functionality
+    this.setupWheelZoom();
 
     // Handle element movement to update positions in the service
     this.paper.on('element:pointerup', (elementView: joint.dia.ElementView) => {
@@ -204,6 +246,42 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       lastClientX = event.clientX;
       lastClientY = event.clientY;
     });
+  }
+
+  private setupWheelZoom(): void {
+    // Create bound function for proper cleanup
+    this.wheelHandler = (event: WheelEvent) => {
+      this.handleWheel(event);
+    };
+    
+    // Add wheel event listener to the diagram container
+    this.diagramElement.nativeElement.addEventListener('wheel', this.wheelHandler);
+  }
+
+  private handleWheel(event: WheelEvent): void {
+    // Prevent default scrolling behavior
+    event.preventDefault();
+    
+    // Throttle wheel events to prevent excessive zoom
+    const currentTime = Date.now();
+    if (currentTime - this.lastWheelTime < this.wheelThrottleMs) {
+      return;
+    }
+    this.lastWheelTime = currentTime;
+    
+    // Get mouse position relative to the diagram container
+    const rect = this.diagramElement.nativeElement.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    
+    // Determine zoom direction based on wheel delta
+    if (event.deltaY < 0) {
+      // Mouse wheel up - zoom in
+      this.zoomInAtPoint(mouseX, mouseY);
+    } else if (event.deltaY > 0) {
+      // Mouse wheel down - zoom out
+      this.zoomOutAtPoint(mouseX, mouseY);
+    }
   }
 
   private subscribeToTableChanges(): void {
@@ -599,13 +677,34 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   private addColumnToContainer(container: SVGElement, column: any, index: number): void {
-    // Create circle bullet
-    const bullet = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    bullet.setAttribute('cx', '16');
-    bullet.setAttribute('cy', (46 + index * 26).toString());
-    bullet.setAttribute('r', '4');
-    bullet.setAttribute('fill', '#3498db');
-    container.appendChild(bullet);
+    // Create symbol based on column type
+    if (column.isPrimaryKey) {
+      // Create key icon for primary key
+      const keyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      keyIcon.setAttribute('x', '16');
+      keyIcon.setAttribute('y', (50 + index * 26).toString());
+      keyIcon.setAttribute('font-size', '12');
+      keyIcon.setAttribute('font-family', 'Arial, sans-serif');
+      keyIcon.setAttribute('fill', '#ffb300');
+      keyIcon.setAttribute('text-anchor', 'middle');
+      keyIcon.textContent = '🔑';
+      container.appendChild(keyIcon);
+    } else if (column.isUnique) {
+      // Create diamond symbol for unique columns
+      const uniqueIcon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      uniqueIcon.setAttribute('points', '16,42 20,46 16,50 12,46');
+      uniqueIcon.setAttribute('fill', '#9c27b0');
+      uniqueIcon.setAttribute('transform', `translate(0, ${index * 26})`);
+      container.appendChild(uniqueIcon);
+    } else {
+      // Create circle bullet for regular columns
+      const bullet = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bullet.setAttribute('cx', '16');
+      bullet.setAttribute('cy', (46 + index * 26).toString());
+      bullet.setAttribute('r', '4');
+      bullet.setAttribute('fill', '#3498db');
+      container.appendChild(bullet);
+    }
     
     // Create column name
     const columnName = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -615,7 +714,14 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     columnName.setAttribute('font-size', '12');
     columnName.setAttribute('font-family', 'Arial, sans-serif');
     columnName.setAttribute('fill', '#333333');
-    columnName.textContent = column.name;
+    
+    // Add indicator for NOT NULL columns only (removed unique indicator)
+    let columnText = column.name;
+    if (column.isNotNull) {
+      columnText += ' *';
+    }
+    
+    columnName.textContent = columnText;
     container.appendChild(columnName);
     
     // Create column type (right-aligned)
@@ -628,7 +734,18 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       columnType.setAttribute('font-family', 'Arial, sans-serif');
       columnType.setAttribute('fill', '#777777');
       columnType.setAttribute('text-anchor', 'end');
-      columnType.textContent = column.type;
+      
+      // Format type with length for VARCHAR/CHAR
+      let typeText = column.type;
+      if (column.type === 'VARCHAR' || column.type === 'CHAR') {
+        if (column.length) {
+          typeText = `${column.type}(${column.length})`;
+        } else {
+          typeText = column.type;
+        }
+      }
+      
+      columnType.textContent = typeText;
       container.appendChild(columnType);
     }
   }
@@ -681,6 +798,45 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       this.currentScale -= this.scaleStep;
       this.paper.scale(this.currentScale);
     }
+  }
+
+  zoomInAtPoint(x: number, y: number): void {
+    if (this.currentScale < this.maxScale) {
+      const newScale = Math.min(this.maxScale, this.currentScale + this.wheelZoomSensitivity);
+      this.zoomAtPoint(x, y, newScale);
+    }
+  }
+
+  zoomOutAtPoint(x: number, y: number): void {
+    if (this.currentScale > this.minScale) {
+      const newScale = Math.max(this.minScale, this.currentScale - this.wheelZoomSensitivity);
+      this.zoomAtPoint(x, y, newScale);
+    }
+  }
+
+  private zoomAtPoint(x: number, y: number, newScale: number): void {
+    // Get current transform
+    const currentTransform = this.paper.translate();
+    const currentScale = this.paper.scale();
+    
+    // Calculate the point in the paper coordinate system
+    const paperPoint = {
+      x: (x - currentTransform.tx) / currentScale.sx,
+      y: (y - currentTransform.ty) / currentScale.sy
+    };
+    
+    // Update scale
+    this.currentScale = newScale;
+    this.paper.scale(newScale);
+    
+    // Calculate new translation to keep the point under the mouse
+    const newTranslate = {
+      x: x - paperPoint.x * newScale,
+      y: y - paperPoint.y * newScale
+    };
+    
+    // Apply the new translation
+    this.paper.translate(newTranslate.x, newTranslate.y);
   }
 
   fitContent(): void {

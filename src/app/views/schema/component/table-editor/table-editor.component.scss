@@ -14,6 +14,10 @@
   ::ng-deep .mat-mdc-tab-header {
     background-color: #fff;
     border-bottom: 1px solid #ddd;
+    
+    .mat-mdc-tab {
+      font-size: 12px;
+    }
   }
   
   ::ng-deep .mat-mdc-tab-body-wrapper {
@@ -30,16 +34,16 @@
 .search-bar {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 8px;
   border-bottom: 1px solid #ddd;
   
   .search-input {
     flex: 1;
-    padding: 8px;
+    padding: 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
     margin-right: 10px;
-    font-size: 14px;
+    font-size: 12px;
   }
   
   .search-button {
@@ -50,7 +54,7 @@
 }
 
 .action-button {
-  padding: 10px;
+  padding: 8px;
   display: flex;
   justify-content: center;
   
@@ -58,15 +62,17 @@
     background-color: #f0f0f0;
     color: #0066cc;
     border-radius: 4px;
+    font-size: 12px;
+    padding: 6px 12px;
     
     mat-icon {
-      margin-right: 5px;
+      margin-right: 4px;
     }
   }
 }
 
 .tables-list {
-  height: calc(100vh - 300px); // ou uma altura adequada para seu layout
+  height: calc(100vh - 250px); // ou uma altura adequada para seu layout
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
@@ -84,8 +90,9 @@
       background-color: transparent;
 
       .mat-expansion-panel-header {
-        padding: 0 16px;
-        height: 48px;
+        padding: 0 12px;
+        height: 40px;
+        font-size: 12px;
       }
     }
   }
@@ -93,31 +100,33 @@
 
 
 .table-details {
-  padding: 16px;
+  padding: 12px;
   
   .input-group {
     display: flex;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     
     label {
       font-weight: 500;
-      margin-right: 10px;
-      min-width: 60px;
+      margin-right: 8px;
+      min-width: 50px;
+      font-size: 12px;
     }
     
     input {
       flex: 1;
-      padding: 8px;
+      padding: 6px;
       border: 1px solid #ddd;
       border-radius: 4px;
       background-color: #fff;
+      font-size: 12px;
     }
   }
 }
 
 .columns-container {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   border: 1px solid #eee;
   border-radius: 4px;
   overflow: hidden;
@@ -125,8 +134,7 @@
   .column-row {
     display: flex;
     align-items: center;
-    padding: 8px;
-    background-color: #fff7f5;
+    padding: 6px;
     border-bottom: 1px solid #eee;
     
     &:last-child {
@@ -135,26 +143,48 @@
     
     .column-name {
       flex: 1;
-      margin-right: 8px;
+      margin-right: 6px;
       
       input {
         width: 100%;
-        padding: 8px;
+        padding: 6px;
         border: 1px solid #ddd;
         border-radius: 4px;
+        font-size: 12px;
       }
     }
     
     .column-type {
-      width: 120px;
-      margin-right: 8px;
+      width: 100px;
+      margin-right: 6px;
       
       select {
         width: 100%;
-        padding: 8px;
+        padding: 6px;
         border: 1px solid #ddd;
         border-radius: 4px;
         background-color: #fff;
+        font-size: 12px;
+      }
+    }
+    
+    .column-length {
+      width: 60px;
+      margin-right: 6px;
+      
+      input {
+        width: 100%;
+        padding: 6px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+        font-size: 12px;
+        text-align: center;
+        
+        &::placeholder {
+          font-size: 10px;
+          color: #999;
+        }
       }
     }
 
@@ -166,8 +196,8 @@
       align-items: center;
       
       button {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -175,13 +205,41 @@
         padding: 0;
         margin: 0;
         
-        &.help-btn {
-          color: #0066cc;
-          background-color: #0066cc1a;
+        &.notnull-btn {
+          color: #555;
+          
+          &.notnull-btn-active {
+            color: #ffb300;
+            background-color: #ffb3001a;
+          }
+          
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
         }
         
         &.key-btn {
           color: #555;
+          
+          &.active {
+            color: #ffb300;
+            background-color: #ffb3001a;
+          }
+        }
+        
+        &.unique-btn {
+          color: #555;
+          
+          &.unique-btn-active {
+            color: #9c27b0;
+            background-color: #9c27b01a;
+          }
+          
+          &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
         }
         
         &.more-btn {
@@ -189,7 +247,7 @@
         }
     
         i {
-          font-size: 18px; 
+          font-size: 14px; 
         }
       }
     }
@@ -197,14 +255,236 @@
   }
 }
 
+// Indexes Section
+.indexes-section {
+  margin-top: 12px;
+  
+  ::ng-deep .mat-expansion-panel {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    
+    .mat-expansion-panel-header {
+      background-color: #f8f9fa;
+      font-size: 12px;
+      
+      .mat-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        i {
+          color: #0066cc;
+        }
+      }
+    }
+  }
+}
+
+.indexes-content {
+  padding: 12px;
+}
+
+.index-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background-color: #fafafa;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.index-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.index-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  input {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+    min-width: 200px;
+  }
+}
+
+.index-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .columns-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      
+      input[type="checkbox"] {
+        margin: 0;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+.index-type {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  select {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+    min-width: 120px;
+  }
+}
+
+.index-unique {
+  display: flex;
+  align-items: center;
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    
+    input[type="checkbox"] {
+      margin: 0;
+      cursor: pointer;
+    }
+  }
+}
+
+.index-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  
+  button {
+    color: #ff4444;
+    
+    &:hover {
+      background-color: rgba(255, 68, 68, 0.1);
+    }
+  }
+}
+
+.no-indexes {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 12px;
+}
+
+.add-index-container {
+  margin-top: 12px;
+  text-align: center;
+}
+
+// Indexes Tab Styles
+.indexes-tab-content {
+  padding: 8px;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+.table-indexes-section {
+  margin-bottom: 12px;
+  border: 1px solid #eeeeee;
+  border-radius: 4px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 4px 4px 0 0;
+  
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .indexes-count {
+    font-size: 11px;
+    color: #666;
+    background-color: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 8px;
+  }
+}
+
+.no-tables {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 14px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px;
+}
+
 .table-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 16px;
+  margin-top: 12px;
   
   .add-column-btn {
     background-color: #f0f0f0;
     color: #0066cc;
+    font-size: 12px;
+    padding: 6px 12px;
   }
   
   .remove-table-btn {
@@ -213,17 +493,20 @@
 }
 
 .add-index-btn {
-  margin-top: 8px;
+  margin-top: 6px;
   background-color: #f0f0f0;
   color: #0066cc;
+  font-size: 12px;
+  padding: 6px 12px;
 }
 
 textarea {
   width: 100%;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid #ddd;
   border-radius: 4px;
   resize: vertical;
+  font-size: 12px;
 }
 
 // Additional styling for second row panel (Tabela_1)

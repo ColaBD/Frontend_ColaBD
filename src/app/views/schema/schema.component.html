@@ -1,5 +1,5 @@
 <section class="d-flex tela">
-  <div class="editor-container">
+  <div class="editor-container" [style.width.px]="editorWidth">
     <div class="editor-nav">
       <div class="nav-item" [class.active]="activeEditor === 'table'" (click)="setActiveEditor('table')">
         <span>Edição de Tabelas</span>
@@ -17,7 +17,12 @@
       </div>
     </div>
   </div>
-  <div class="diagram-view">
+  <div class="resize-handle" 
+       (mousedown)="onResizeStart($event)"
+       [class.resizing]="isResizing">
+    <div class="resize-line"></div>
+  </div>
+  <div class="diagram-view" [style.width.px]="diagramWidth">
     <app-diagram></app-diagram>
   </div>
   <!-- <footer class="footer d-flex">

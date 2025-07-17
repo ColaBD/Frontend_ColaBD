@@ -4,16 +4,27 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export interface TableColumn {
   name: string;
   type: string;
+  length?: number;
   helpText?: string;
   isPrimaryKey?: boolean;
   isForeignKey?: boolean;
+  isNotNull?: boolean;
+  isUnique?: boolean;
+}
+
+export interface TableIndex {
+  id: string;
+  name: string;
+  columns: string[];
+  type: 'BTREE' | 'HASH' | 'FULLTEXT' | 'SPATIAL';
+  isUnique: boolean;
 }
 
 export interface TableDefinition {
   id: string;
   name: string;
   columns: TableColumn[];
-  indices?: any[];
+  indices?: TableIndex[];
   comment?: string;
   position?: { x: number, y: number };
 }
@@ -125,6 +136,40 @@ export class SchemaService {
     
     if (table) {
       table.position = position;
+      this.updateTable(table);
+    }
+  }
+
+  // Index management methods
+  addIndex(tableId: string, index: TableIndex): void {
+    const table = this.tablesMap.get(tableId);
+    if (table) {
+      if (!table.indices) {
+        table.indices = [];
+      }
+      if (!index.id) {
+        index.id = this.generateId('idx_');
+      }
+      table.indices.push(index);
+      this.updateTable(table);
+    }
+  }
+  
+  updateIndex(tableId: string, indexId: string, updatedIndex: TableIndex): void {
+    const table = this.tablesMap.get(tableId);
+    if (table && table.indices) {
+      const indexIndex = table.indices.findIndex(idx => idx.id === indexId);
+      if (indexIndex !== -1) {
+        table.indices[indexIndex] = updatedIndex;
+        this.updateTable(table);
+      }
+    }
+  }
+  
+  removeIndex(tableId: string, indexId: string): void {
+    const table = this.tablesMap.get(tableId);
+    if (table && table.indices) {
+      table.indices = table.indices.filter(idx => idx.id !== indexId);
       this.updateTable(table);
     }
   }

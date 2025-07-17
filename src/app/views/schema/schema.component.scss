@@ -8,12 +8,11 @@
 }
 
 .editor-container {
-  width: 30%;
   height: 100%;
-  border-right: 1px solid #ddd;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .editor-nav {
@@ -47,10 +46,43 @@
   height: 100%;
 }
 
+.resize-handle {
+  width: 6px;
+  height: 100%;
+  background-color: #f0f0f0;
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  cursor: col-resize;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-color: #e0e0e0;
+  }
+  
+  &.resizing {
+    background-color: #0066cc;
+    
+    .resize-line {
+      background-color: white;
+    }
+  }
+  
+  .resize-line {
+    width: 2px;
+    height: 40px;
+    background-color: #999;
+    border-radius: 1px;
+  }
+}
+
 .diagram-view {
-  width: 100%;
   height: 100%;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .btn-envio{

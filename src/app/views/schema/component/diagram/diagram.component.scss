@@ -10,6 +10,14 @@
   background-color: #f8f9fa;
 }
 
+.joint-canvas {
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
 .diagram-controls {
   position: absolute;
   top: 10px;
