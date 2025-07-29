@@ -63,6 +63,38 @@
   }
 }
 
+// Relationship type dropdown styles
+.relationship-dropdown {
+  position: absolute;
+  background: white;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 140px;
+  
+  select {
+    width: 100%;
+    padding: 10px 10px;
+    border: none;
+    background: white;
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    outline: none;
+    cursor: pointer;
+    border-radius: 4px;
+    
+    &:focus {
+      background-color: #f8f9fa;
+    }
+    
+    option {
+      padding: 6px;
+      font-size: 13px;
+    }
+  }
+}
+
 /* Relationship link styles */
 :host ::ng-deep {
   .joint-link .connection {
@@ -95,6 +127,25 @@
   .joint-link:hover .connection {
     stroke: #1a73e8;
     stroke-width: 3px;
+  }
+
+  // Relationship type label styles
+  .joint-link .relationship-label {
+    .label-body {
+      fill: white;
+      stroke: #007bff;
+      stroke-width: 2;
+      rx: 4;
+      ry: 4;
+    }
+    
+    .label-text {
+      font-size: 12px;
+      font-weight: bold;
+      fill: #007bff;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
   }
 }
 

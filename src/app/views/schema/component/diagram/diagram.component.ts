@@ -27,6 +27,8 @@ declare module 'jointjs' {
 })
 export class DiagramComponent implements AfterViewInit, OnDestroy {
   @ViewChild('diagram') diagramElement!: ElementRef;
+  @ViewChild('relationshipDropdown') relationshipDropdown!: ElementRef;
+  @ViewChild('relationshipSelect') relationshipSelect!: ElementRef<HTMLSelectElement>;
   
   private graph!: joint.dia.Graph;
   private paper!: joint.dia.Paper;
@@ -45,6 +47,11 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   private wheelHandler?: (event: WheelEvent) => void;
   private lastWheelTime: number = 0;
   private readonly wheelThrottleMs: number = 16; // ~60fps
+
+  // Relationship dropdown properties
+  showRelationshipDropdown: boolean = false;
+  private selectedLink: joint.dia.Link | null = null;
+  private selectedRelationshipId: string | null = null;
 
   constructor(private schemaService: SchemaService) { }
 
@@ -71,6 +78,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     if (this.wheelHandler) {
       this.diagramElement.nativeElement.removeEventListener('wheel', this.wheelHandler);
     }
+
+    // Clean up document click listener for dropdown
+    document.removeEventListener('click', this.handleDocumentClick.bind(this));
   }
 
   private initializeJointJs(): void {
@@ -163,13 +173,76 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
           const targetId = this.getTableIdFromElementId(element.id.toString());
           
           if (sourceId && targetId) {
-            // Create the relationship in the service
-            this.schemaService.addRelationship({
-              id: '',
-              sourceTableId: sourceId,
-              targetTableId: targetId,
-              type: RelationshipType.OneToMany
-            });
+            // Get source and target tables
+            const sourceTable = this.schemaService.getTablesSnapshot().find(t => t.id === sourceId);
+            const targetTable = this.schemaService.getTablesSnapshot().find(t => t.id === targetId);
+            
+            console.log('Creating relationship:', { sourceId, targetId, sourceTable, targetTable });
+            
+            if (sourceTable && targetTable) {
+              // Find primary key in source table
+              const primaryKeyColumn = sourceTable.columns.find(col => col.isPrimaryKey);
+              
+              console.log('Primary key found:', primaryKeyColumn);
+              
+              if (primaryKeyColumn) {
+                // Create foreign key column name
+                const foreignKeyName = `${sourceTable.name.toLowerCase()}_${primaryKeyColumn.name.toLowerCase()}`;
+                
+                // Check if foreign key column already exists
+                const existingForeignKey = targetTable.columns.find(col => col.name === foreignKeyName);
+                
+                console.log('Foreign key name:', foreignKeyName, 'Existing FK:', existingForeignKey);
+                
+                if (!existingForeignKey) {
+                  // Add foreign key column to target table
+                  const foreignKeyColumn = {
+                    name: foreignKeyName,
+                    type: primaryKeyColumn.type,
+                    length: primaryKeyColumn.length,
+                    isForeignKey: true,
+                    isNotNull: true,
+                    helpText: `FK para ${sourceTable.name}.${primaryKeyColumn.name}`
+                  };
+                  
+                  console.log('Creating foreign key column:', foreignKeyColumn);
+                  
+                  // Update target table with new foreign key column
+                  const updatedTargetTable = {
+                    ...targetTable,
+                    columns: [...targetTable.columns, foreignKeyColumn]
+                  };
+                  
+                  console.log('Updated target table:', updatedTargetTable);
+                  
+                  this.schemaService.updateTable(updatedTargetTable);
+                }
+                
+                // Create the relationship with column references
+                const newRelationship = {
+                  id: '',
+                  sourceTableId: sourceId,
+                  targetTableId: targetId,
+                  sourceColumnId: primaryKeyColumn.name,
+                  targetColumnId: existingForeignKey ? existingForeignKey.name : foreignKeyName,
+                  type: RelationshipType.OneToMany
+                };
+                
+                console.log('Creating relationship:', newRelationship);
+                this.schemaService.addRelationship(newRelationship);
+              } else {
+                console.log('No primary key found in source table, creating basic relationship');
+                // No primary key found, create relationship without column references
+                this.schemaService.addRelationship({
+                  id: '',
+                  sourceTableId: sourceId,
+                  targetTableId: targetId,
+                  type: RelationshipType.OneToMany
+                });
+              }
+            } else {
+              console.log('Source or target table not found');
+            }
           }
           
           // Reset source and exit linking mode
@@ -207,6 +280,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
         this.schemaService.removeRelationship(relationshipId);
       }
     });
+
+    // Handle single clicks on links to show relationship type dropdown
+    this.paper.on('link:pointerclick', (linkView: joint.dia.LinkView, evt: any) => {
+      evt.stopPropagation();
+      
+      const link = linkView.model;
+      const relationshipId = this.getRelationshipIdFromLinkId(link.id.toString());
+      
+      if (relationshipId) {
+        // Get click position relative to the diagram container
+        const diagramRect = this.diagramElement.nativeElement.getBoundingClientRect();
+        const x = evt.clientX - diagramRect.left + 10;
+        const y = evt.clientY - diagramRect.top - 10;
+        
+        this.showRelationshipDropdownAt(x, y, link, relationshipId);
+      }
+    });
+
+    // Add document click listener to close dropdown when clicking outside
+    document.addEventListener('click', this.handleDocumentClick);
   }
 
   private setupPanning(): void {
@@ -475,6 +568,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     
     // Update relationship type (styling)
     this.updateLinkStyling(link, relationship.type);
+
+    // Update relationship type label
+    link.label(0, {
+      attrs: {
+        text: {
+          text: this.getRelationshipTypeLabel(relationship.type),
+          fontSize: 12,
+          fontWeight: 'bold',
+          fill: '#007bff'
+        },
+        rect: {
+          fill: 'white',
+          stroke: '#007bff',
+          strokeWidth: 2,
+          rx: 8,
+          ry: 8
+        }
+      },
+      position: 0.5
+    });
   }
 
   private createTableElement(table: TableDefinition): joint.dia.Element {
@@ -559,7 +672,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
         }
       },
       router: { name: 'manhattan' },
-      connector: { name: 'rounded' }
+      connector: { name: 'rounded' },
+      // Add relationship type label
+      labels: [{
+        attrs: {
+          text: {
+            text: this.getRelationshipTypeLabel(relationship.type),
+            fontSize: 12,
+            fontWeight: 'bold',
+            fill: '#007bff'
+          },
+          rect: {
+            fill: 'white',
+            stroke: '#007bff',
+            strokeWidth: 2,
+            rx: 4,
+            ry: 4
+          }
+        },
+        position: 0.5
+      }]
     });
     
     // Apply specific styling based on relationship type
@@ -846,5 +978,83 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       maxScale: this.maxScale
     });
     this.currentScale = this.paper.scale().sx;
+  }
+
+  // Relationship dropdown methods
+
+  private handleDocumentClick = (event: Event): void => {
+    const target = event.target as Element;
+    if (!this.relationshipDropdown.nativeElement.contains(target) && 
+        !target.closest('.joint-link')) {
+      this.hideRelationshipDropdown();
+    }
+  }
+
+  private showRelationshipDropdownAt(x: number, y: number, link: joint.dia.Link, relationshipId: string): void {
+    this.selectedLink = link;
+    this.selectedRelationshipId = relationshipId;
+    
+    // Position dropdown
+    const dropdown = this.relationshipDropdown.nativeElement;
+    dropdown.style.left = x + 'px';
+    dropdown.style.top = y + 'px';
+    
+    // Set current value
+    const relationship = this.schemaService.getRelationshipsSnapshot().find(r => r.id === relationshipId);
+    if (relationship && this.relationshipSelect) {
+      this.relationshipSelect.nativeElement.value = relationship.type;
+    }
+    
+    this.showRelationshipDropdown = true;
+    
+    // Focus on select after view update
+    setTimeout(() => {
+      if (this.relationshipSelect) {
+        this.relationshipSelect.nativeElement.focus();
+      }
+    }, 0);
+  }
+
+  hideRelationshipDropdown(): void {
+    this.showRelationshipDropdown = false;
+    this.selectedLink = null;
+    this.selectedRelationshipId = null;
+  }
+
+  onRelationshipTypeChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const newType = target.value as RelationshipType;
+    
+    if (this.selectedRelationshipId && newType) {
+      // Get the current relationship
+      const relationship = this.schemaService.getRelationshipsSnapshot().find(r => r.id === this.selectedRelationshipId);
+      
+      if (relationship) {
+        // Update the relationship type
+        const updatedRelationship: Relationship = {
+          ...relationship,
+          type: newType
+        };
+        
+        this.schemaService.updateRelationship(updatedRelationship);
+      }
+    }
+    
+    this.hideRelationshipDropdown();
+  }
+
+  private getRelationshipTypeLabel(type: RelationshipType): string {
+    switch (type) {
+      case RelationshipType.OneToOne:
+        return '1:1';
+      case RelationshipType.OneToMany:
+        return '1:n';
+      case RelationshipType.ManyToOne:
+        return 'n:1';
+      case RelationshipType.ManyToMany:
+        return 'n:n';
+      default:
+        return '';
+    }
   }
 } 
