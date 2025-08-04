@@ -3,11 +3,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { NgClass } from '@angular/common';
-import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Observable } from 'rxjs';
 import { LoadingService } from '../../core/spinner/loading.service'
+import { AuthService } from '../../core/auth/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -22,16 +23,19 @@ export class LoginComponent {
   hide = signal(true);
 
   constructor(
+    private loading: LoadingService,
     private formBuilder: FormBuilder,
+    private authService: AuthService,
     private router: Router,
-    // private authService: AuthService,
     private toastrService: ToastrService) { }
 
   ngOnInit(): void {
     this.form = this.formBuilder.group({
-      password: new FormControl('', [Validators.required]),
-      email: new FormControl('', [Validators.required, Validators.email])
+      email: ['', [Validators.required]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
     });
+
+    this.estaCarregando$ = this.loading.estaCarregado();
   }
 
   clickEvent(event: MouseEvent) {
@@ -40,15 +44,18 @@ export class LoginComponent {
   }
 
   login() {
-    // if (this.form?.invalid) {
-    //   for (let erro of this.form.validate()) {
-    //     this.toastrService.warning(erro);
-    //   }
+    if (this.form?.invalid) {
+      for (let erro of this.form.validate()) {
+        this.toastrService.warning(erro);
+      }
 
-    //   return;
-    // }
+      return;
+    }
 
-    this.processarSucesso();
+    this.authService.login(this.form.value).subscribe({
+      next: (res) => this.processarSucesso(),
+      error: (err) => this.processarFalha(err)
+    })
   }
 
   processarSucesso() {
@@ -60,7 +67,7 @@ export class LoginComponent {
     this.router.navigate(['/dashboard']);
   }
 
-  processarFalha(erro: Error) {
-    this.toastrService.error(erro.message, 'Erro');
+  processarFalha(error: Error){
+    this.toastrService.error(error.message, 'Error');
   }
 }

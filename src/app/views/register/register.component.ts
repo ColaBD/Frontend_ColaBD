@@ -8,6 +8,7 @@ import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Observable } from 'rxjs';
 import { LoadingService } from '../../core/spinner/loading.service';
+import { AuthService } from '../../core/auth/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -23,12 +24,12 @@ export class RegisterComponent {
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
-    // private authService: AuthService,
+    private authService: AuthService,
     private toastrService: ToastrService) { }
 
   ngOnInit(): void {
     this.form = this.formBuilder.group({
-      username: new FormControl('', [Validators.required, Validators.minLength(5)]),
+      name: new FormControl('', [Validators.required, Validators.minLength(5)]),
       password: new FormControl('', [Validators.required]),
       email: new FormControl('', [Validators.required, Validators.email])
     });
@@ -40,14 +41,19 @@ export class RegisterComponent {
   }
 
   register() {
-    // if (this.form?.invalid) {
-    //   for (let erro of this.form.validate()) {
-    //     this.toastrService.warning(erro);
-    //   }
+    if (this.form?.invalid) {
+      for (let erro of this.form.validate()) {
+        this.toastrService.warning(erro);
+      }
 
-    //   return;
-    // }
+      return;
+    }
     this.processarSucesso();
+
+    this.authService.registrar(this.form.value).subscribe({
+      next: (res) => this.processarSucesso(),
+      error: (err) => this.processarFalha(err)
+    })
   }
 
   processarSucesso() {
@@ -56,7 +62,7 @@ export class RegisterComponent {
       'Success'
     );
 
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/login']);
   }
 
   processarFalha(erro: Error) {

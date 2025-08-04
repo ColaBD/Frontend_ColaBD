@@ -11,6 +11,8 @@ import { LoadingService } from '../spinner/loading.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { FooterComponent } from '../footer/footer.component';
+import { AuthService } from '../auth/services/auth.service';
+import { MatExpansionModule } from "@angular/material/expansion";
 
 @Component({
   selector: 'app-shell',
@@ -24,30 +26,31 @@ import { FooterComponent } from '../footer/footer.component';
     MatListModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    FooterComponent
-  ]
+    FooterComponent,
+    MatExpansionModule
+]
 })
 export class ShellComponent {
   estaCarregando$!: Observable<boolean>;
   usuarioEstaLogado$!: Observable<boolean>;
 
   constructor(private loading: LoadingService,
-    // private authService: AuthService, 
+    private authService: AuthService, 
     private router: Router,
     private toastService: ToastrService) { }
 
   ngOnInit(): void {
     // ESTÁ COMANDTADO PQ AINDA NÃO FOI FEITA A PARTE DE AUTENTICAÇÃO
-    // this.usuarioEstaLogado$ = this.authService.obterUsuarioAutenticado()
-    //   .pipe(
-    //     map((usuario) => {
-    //       if (!usuario) {
-    //         return false;
-    //       }
+    this.usuarioEstaLogado$ = this.authService.observarToken()
+      .pipe(
+        map((usuario) => {
+          if (!usuario) {
+            return false;
+          }
 
-    //       return true;
-    //     })
-    //   )
+          return true;
+        })
+      )
 
     this.estaCarregando$ = this.loading.estaCarregado();
 
