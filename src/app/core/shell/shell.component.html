@@ -7,15 +7,19 @@
 
       <span class="spacer"></span>
 
-      <button mat-button class="nav-item text-white">
-        <a href="/dashboard">dashboard</a>
-      </button>
-      <button mat-button href="/schema" class="nav-item text-white">
-        <a href="/schema">create schema</a>
-      </button>
-      <button mat-button class="nav-item text-white">
-        <a href="/login">account</a>
-      </button>
+      <ng-template [ngIf]="usuarioEstaLogado$ | async" [ngIfElse]="naoLogado">
+        <button mat-button class="nav-item text-white">
+          <a href="/dashboard">dashboard</a>
+        </button>
+        <button mat-button href="/schema" class="nav-item text-white">
+          <a href="/schema">create schema</a>
+        </button>
+      </ng-template>
+      <ng-template #naoLogado>
+        <button mat-button class="nav-item text-white">
+          <a href="/login">account</a>
+        </button>
+      </ng-template>
     </mat-toolbar>
 
     <div>

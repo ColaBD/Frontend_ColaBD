@@ -1,18 +1,20 @@
 <section class="login-container">
   <h2 class="title">Hello Again!</h2>
   <p class="subtitle">Welcome Back You've Been Missed!</p>
-
+  
+  <!-- <pre>{{ form.value | json }}</pre> -->
   <form [formGroup]="form" (ngSubmit)="login()">
+
     <mat-form-field appearance="outline" class="input-email mt-3">
       <mat-label>Enter your e-mail</mat-label>
-      <input matInput placeholder="Username">
+      <input matInput placeholder="Username" formControlName="email" />
       <mat-hint>E-mail</mat-hint>
     </mat-form-field>
 
     <div class="password-field d-flex mt-3">
       <mat-form-field appearance="outline" class="input-password mt-2">
         <mat-label>Enter your password</mat-label>
-        <input matInput [type]="hide() ? 'password' : 'text'" />
+        <input matInput [type]="hide() ? 'password' : 'text'" formControlName="password"/>
         <button
           type="button"
           mat-icon-button

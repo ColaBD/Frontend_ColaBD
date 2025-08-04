@@ -5,19 +5,19 @@
   <form [formGroup]="form" (ngSubmit)="register()">
     <mat-form-field appearance="outline" class="input-info mt-4">
       <mat-label>Enter your username</mat-label>
-      <input matInput placeholder="Username">
+      <input matInput placeholder="Username" formControlName="name"/>
       <mat-hint>Username</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="input-info mt-5">
       <mat-label>Enter your e-mail</mat-label>
-      <input matInput placeholder="E-mail">
+      <input matInput placeholder="E-mail" formControlName="email"/>
       <mat-hint>E-mail</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="input-info mt-5">
       <mat-label>Enter your password</mat-label>
-      <input matInput [type]="hide() ? 'password' : 'text'" />
+      <input matInput [type]="hide() ? 'password' : 'text'" formControlName="password"/>
       <button type="button" mat-icon-button matSuffix (click)="clickEvent($event)"
         [attr.aria-label]="hide() ? 'Show password' : 'Hide password'" [attr.aria-pressed]="hide()">
 
@@ -39,7 +39,5 @@
         <i class="bi bi-apple icone"></i>
       </button>
     </div>
-
-    <p class="signup-text">Don't have an Account? <br> <a href="/register">SIGN UP</a></p>
   </form>
 </section>
