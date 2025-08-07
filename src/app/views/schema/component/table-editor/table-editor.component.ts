@@ -59,7 +59,7 @@ export class TableEditorComponent implements OnInit {
       id: '',
       name: `Tabela ${this.tables.length + 1}`,
       columns: [
-        { name: 'ID', type: 'INT' }
+        { name: 'ID', type: 'INT', isPrimaryKey: true, isNotNull: true, isUnique: true }
       ]
     };
     

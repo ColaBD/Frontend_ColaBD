@@ -22,11 +22,11 @@
   <!-- Relationship Type Dropdown -->
   <div #relationshipDropdown class="relationship-dropdown" [style.display]="showRelationshipDropdown ? 'block' : 'none'">
     <select #relationshipSelect (change)="onRelationshipTypeChange($event)" (blur)="hideRelationshipDropdown()">
-      <option value="">Selecionar tipo de relacionamento...</option>
-      <option value="one-to-one">Um para Um (1:1)</option>
-      <option value="one-to-many">Um para Muitos (1:n)</option>
-      <option value="many-to-one">Muitos para Um (n:1)</option>
-      <option value="many-to-many">Muitos para Muitos (n:n)</option>
+      <option value="">Selecione</option>
+      <option value="one-to-one">(1:1)</option>
+      <option value="one-to-many">(1:n)</option>
+      <option value="many-to-one">(n:1)</option>
+      <option value="many-to-many">(n:n)</option>
     </select>
   </div>
   

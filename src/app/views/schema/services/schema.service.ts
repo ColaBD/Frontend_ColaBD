@@ -61,7 +61,7 @@ export class SchemaService {
       id: this.generateId(),
       name: 'Tabela 1',
       columns: [
-        { name: 'ID', type: 'INT' }
+        { name: 'ID', type: 'INT', isPrimaryKey: true, isNotNull: true, isUnique: true }
       ],
       position: { x: 100, y: 100 }
     });
