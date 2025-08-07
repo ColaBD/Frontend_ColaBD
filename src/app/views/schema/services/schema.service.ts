@@ -1,5 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { JointJSParserService } from './jointjs-parser.service';
+import { SchemaBackendService } from './schema-backend.service';
+import { JointJSGraph } from './jointjs-data.interface';
 
 export interface TableColumn {
   name: string;
@@ -55,7 +58,10 @@ export class SchemaService {
   private relationships = new BehaviorSubject<Relationship[]>([]);
   private relationshipsMap = new Map<string, Relationship>();
   
-  constructor() {
+  constructor(
+    private jointJSParser: JointJSParserService,
+    private backendService: SchemaBackendService
+  ) {
     // Initialize with default table for testing
     this.addTable({
       id: this.generateId(),
@@ -231,6 +237,145 @@ export class SchemaService {
     }
   }
   
+  // JointJS Data Import/Export Methods
+  
+  /**
+   * Load schema from JointJS graph data (typically from backend)
+   */
+  loadFromJointJSData(jointjsData: JointJSGraph): void {
+    try {
+      // Parse the JointJS data
+      const parsedData = this.jointJSParser.parseJointJSData(jointjsData);
+      
+      // Convert to our internal format
+      const { tables, relationships } = this.jointJSParser.convertToTableDefinitions(parsedData);
+      
+      // Clear existing data
+      this.clearSchema();
+      
+      // Load the new data
+      tables.forEach(table => {
+        this.tablesMap.set(table.id, table);
+      });
+      relationships.forEach(relationship => {
+        this.relationshipsMap.set(relationship.id, relationship);
+      });
+      
+      // Update observables
+      this.tables.next(tables);
+      this.relationships.next(relationships);
+      
+      console.log('Schema loaded from JointJS data:', { tables: tables.length, relationships: relationships.length });
+    } catch (error) {
+      console.error('Failed to load schema from JointJS data:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Export current schema to JointJS graph format (for backend storage)
+   */
+  exportToJointJSData(): JointJSGraph {
+    try {
+      const currentTables = this.tables.getValue();
+      const currentRelationships = this.relationships.getValue();
+      
+      const jointjsData = this.jointJSParser.convertToJointJSFormat(currentTables, currentRelationships);
+      
+      console.log('Schema exported to JointJS format:', jointjsData);
+      return jointjsData;
+    } catch (error) {
+      console.error('Failed to export schema to JointJS format:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Clear all tables and relationships
+   */
+  clearSchema(): void {
+    this.tablesMap.clear();
+    this.relationshipsMap.clear();
+    this.tables.next([]);
+    this.relationships.next([]);
+  }
+  
+  /**
+   * Load schema from a JSON string (helper method)
+   */
+  loadFromJSONString(jsonString: string): void {
+    try {
+      const jointjsData: JointJSGraph = JSON.parse(jsonString);
+      this.loadFromJointJSData(jointjsData);
+    } catch (error) {
+      console.error('Failed to parse JSON string:', error);
+      throw new Error('Invalid JSON format');
+    }
+  }
+  
+  /**
+   * Export schema to JSON string (helper method)
+   */
+  exportToJSONString(): string {
+    try {
+      const jointjsData = this.exportToJointJSData();
+      return JSON.stringify(jointjsData, null, 2);
+    } catch (error) {
+      console.error('Failed to export to JSON string:', error);
+      throw error;
+    }
+  }
+
+  // Backend Integration Methods
+  
+  /**
+   * Load schema from backend
+   */
+  loadSchemaFromBackend(schemaId?: string): Observable<void> {
+    return new Observable(observer => {
+      this.backendService.loadSchema(schemaId).subscribe({
+        next: (jointjsData) => {
+          try {
+            this.loadFromJointJSData(jointjsData);
+            observer.next();
+            observer.complete();
+          } catch (error) {
+            observer.error(error);
+          }
+        },
+        error: (error) => observer.error(error)
+      });
+    });
+  }
+  
+  /**
+   * Save schema to backend
+   */
+  saveSchemaToBackend(schemaId?: string): Observable<{ id: string, message: string }> {
+    const jointjsData = this.exportToJointJSData();
+    return this.backendService.saveSchema(jointjsData, schemaId);
+  }
+  
+  /**
+   * Load mock schema for development/testing
+   */
+  loadMockSchema(): Observable<void> {
+    return new Observable(observer => {
+      this.backendService.loadMockSchema().subscribe({
+        next: (jointjsData) => {
+          try {
+            this.loadFromJointJSData(jointjsData);
+            observer.next();
+            observer.complete();
+          } catch (error) {
+            observer.error(error);
+          }
+        },
+        error: (error) => observer.error(error)
+      });
+    });
+  }
+
   // Generate a unique ID
   private generateId(prefix: string = 'table_'): string {
     return prefix + Math.random().toString(36).substr(2, 9);

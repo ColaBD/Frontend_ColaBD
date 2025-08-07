@@ -4,6 +4,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import * as joint from 'jointjs';
 import * as $ from 'jquery';
 import { SchemaService, TableDefinition, Relationship, RelationshipType } from '../../services/schema.service';
+import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { Subscription } from 'rxjs';
 
 // Make jQuery available to JointJS
@@ -47,6 +48,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   private wheelHandler?: (event: WheelEvent) => void;
   private lastWheelTime: number = 0;
   private readonly wheelThrottleMs: number = 16; // ~60fps
+  private resizeTimeout: any;
+  private windowResizeTimeout: any;
 
   // Relationship dropdown properties
   showRelationshipDropdown: boolean = false;
@@ -56,13 +59,24 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   constructor(private schemaService: SchemaService) { }
 
   ngAfterViewInit(): void {
-    this.initializeJointJs();
-    this.subscribeToTableChanges();
-    this.subscribeToRelationshipChanges();
+    // Use setTimeout to ensure DOM is fully rendered before initializing JointJS
+    setTimeout(() => {
+      this.initializeJointJs();
+      this.subscribeToTableChanges();
+      this.subscribeToRelationshipChanges();
+    }, 0);
   }
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    
+    // Clear any pending timeouts
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    if (this.windowResizeTimeout) {
+      clearTimeout(this.windowResizeTimeout);
+    }
     
     // Clean up ResizeObserver
     if (this.resizeObserver) {
@@ -81,71 +95,155 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
 
     // Clean up document click listener for dropdown
     document.removeEventListener('click', this.handleDocumentClick.bind(this));
+    
+    // Clean up JointJS instances
+    if (this.paper) {
+      this.paper.remove();
+    }
+    if (this.graph) {
+      this.graph.clear();
+    }
   }
 
   private initializeJointJs(): void {
-    this.graph = new joint.dia.Graph();
-    
-    this.paper = new joint.dia.Paper({
-      el: this.diagramElement.nativeElement,
-      model: this.graph,
-      width: '100%',
-      height: '100%',
-      gridSize: 10,
-      drawGrid: true,
-      background: {
-        color: '#f8f9fa'
-      },
-      interactive: {
-        linkMove: true,
-        elementMove: true,
-        vertexAdd: true,
-        vertexMove: true
-      },
-      defaultLink: this.createDefaultLink(),
-      defaultConnectionPoint: { name: 'boundary' },
-      validateConnection: (cellViewS: any, magnetS: any, cellViewT: any, magnetT: any, end: any, linkView: any) => {
-        // Don't allow linking to self
-        if (cellViewS === cellViewT) return false;
-        return true;
-      }
-    });
+    // Ensure the diagram element is available and has dimensions
+    if (!this.diagramElement?.nativeElement) {
+      console.error('Diagram element not available');
+      return;
+    }
 
-    // Set paper to take available space
+    const element = this.diagramElement.nativeElement;
+    
+    // Wait for element to have dimensions
+    if (element.offsetWidth === 0 || element.offsetHeight === 0) {
+      console.warn('Diagram element has no dimensions, retrying...');
+      setTimeout(() => this.initializeJointJs(), 50);
+      return;
+    }
+
+    try {
+      this.graph = new joint.dia.Graph();
+      
+      this.paper = new joint.dia.Paper({
+        el: element,
+        model: this.graph,
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        gridSize: 10,
+        drawGrid: true,
+        background: {
+          color: '#f8f9fa'
+        },
+        interactive: {
+          linkMove: true,
+          elementMove: true,
+          vertexAdd: true,
+          vertexMove: true
+        },
+        defaultLink: this.createDefaultLink(),
+        defaultConnectionPoint: { name: 'boundary' },
+        validateConnection: (cellViewS: any, magnetS: any, cellViewT: any, magnetT: any, end: any, linkView: any) => {
+          // Don't allow linking to self
+          if (cellViewS === cellViewT) return false;
+          return true;
+        }
+      });
+
+      // Set up responsive resizing
+      this.setupResponsiveResize();
+      
+      // Add panning
+      this.setupPanning();
+      
+      // Add wheel zoom functionality
+      this.setupWheelZoom();
+
+      // Set up event handlers
+      this.setupEventHandlers();
+
+      console.log('JointJS initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize JointJS:', error);
+      // Retry after a short delay
+      setTimeout(() => this.initializeJointJs(), 100);
+    }
+  }
+
+  private setupResponsiveResize(): void {
     const resize = () => {
-      const parentWidth = this.diagramElement.nativeElement.offsetWidth;
-      const parentHeight = this.diagramElement.nativeElement.offsetHeight;
-      this.paper.setDimensions(parentWidth, parentHeight);
+      if (!this.paper || !this.diagramElement?.nativeElement) {
+        return;
+      }
+
+      const element = this.diagramElement.nativeElement;
+      const parentWidth = element.offsetWidth;
+      const parentHeight = element.offsetHeight;
+      
+      // Only resize if dimensions are valid
+      if (parentWidth > 0 && parentHeight > 0) {
+        try {
+          this.paper.setDimensions(parentWidth, parentHeight);
+          console.log(`Canvas resized to: ${parentWidth}x${parentHeight}`);
+        } catch (error) {
+          console.error('Error resizing paper:', error);
+        }
+      }
     };
 
-    // Initial resize
-    resize();
+    // Initial resize with delay to ensure DOM is ready
+    setTimeout(() => {
+      resize();
+    }, 100);
     
     // Set up ResizeObserver to watch for container size changes
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    
     this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        // Use requestAnimationFrame to ensure the DOM has been updated
-        requestAnimationFrame(() => {
-          resize();
-        });
-      }
+      // Throttle resize events to prevent excessive calls
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          if (width > 0 && height > 0) {
+            requestAnimationFrame(() => {
+              resize();
+            });
+          }
+        }
+      }, 16); // ~60fps throttling
     });
     
     // Start observing the diagram container
     this.resizeObserver.observe(this.diagramElement.nativeElement);
     
     // Also listen to window resize for cases when window itself is resized
-    window.addEventListener('resize', resize);
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
     
-    // Store the resize function for cleanup
-    this.resizeHandler = resize;
-
-    // Add panning
-    this.setupPanning();
+    this.resizeHandler = () => {
+      clearTimeout(this.windowResizeTimeout);
+      this.windowResizeTimeout = setTimeout(() => {
+        resize();
+      }, 100);
+    };
     
-    // Add wheel zoom functionality
-    this.setupWheelZoom();
+    window.addEventListener('resize', this.resizeHandler);
+    
+    // Listen for visibility changes (when tabs switch, etc.)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // Page became visible, force resize in case dimensions changed
+        setTimeout(() => {
+          resize();
+        }, 100);
+      }
+    });
+  }
 
+  private setupEventHandlers(): void {
     // Handle element movement to update positions in the service
     this.paper.on('element:pointerup', (elementView: joint.dia.ElementView) => {
       const element = elementView.model;
@@ -919,6 +1017,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomIn(): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     if (this.currentScale < this.maxScale) {
       this.currentScale += this.scaleStep;
       this.paper.scale(this.currentScale);
@@ -926,6 +1026,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomOut(): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     if (this.currentScale > this.minScale) {
       this.currentScale -= this.scaleStep;
       this.paper.scale(this.currentScale);
@@ -933,6 +1035,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomInAtPoint(x: number, y: number): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     if (this.currentScale < this.maxScale) {
       const newScale = Math.min(this.maxScale, this.currentScale + this.wheelZoomSensitivity);
       this.zoomAtPoint(x, y, newScale);
@@ -940,6 +1044,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomOutAtPoint(x: number, y: number): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     if (this.currentScale > this.minScale) {
       const newScale = Math.max(this.minScale, this.currentScale - this.wheelZoomSensitivity);
       this.zoomAtPoint(x, y, newScale);
@@ -947,6 +1053,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   private zoomAtPoint(x: number, y: number, newScale: number): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     // Get current transform
     const currentTransform = this.paper.translate();
     const currentScale = this.paper.scale();
@@ -972,6 +1080,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   fitContent(): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
     this.paper.scaleContentToFit({
       padding: 50,
       minScale: this.minScale,
@@ -1056,5 +1166,228 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       default:
         return '';
     }
+  }
+
+  // JointJS Data Import Methods
+  
+  /**
+   * Load schema from JointJS graph data and rebuild the diagram
+   */
+  loadFromJointJSData(jointjsData: JointJSGraph): void {
+    try {
+      // Load data into the schema service
+      this.schemaService.loadFromJointJSData(jointjsData);
+      
+      // The diagram will be automatically updated through the subscriptions
+      // to schemaService.getTables() and schemaService.getRelationships()
+      
+      // Fit content to show all loaded elements
+      setTimeout(() => {
+        this.fitContent();
+      }, 100);
+      
+      console.log('Diagram loaded from JointJS data');
+    } catch (error) {
+      console.error('Failed to load diagram from JointJS data:', error);
+    }
+  }
+  
+  /**
+   * Load schema from JSON string
+   */
+  loadFromJSONString(jsonString: string): void {
+    try {
+      const jointjsData: JointJSGraph = JSON.parse(jsonString);
+      this.loadFromJointJSData(jointjsData);
+    } catch (error) {
+      console.error('Failed to load diagram from JSON string:', error);
+      throw new Error('Invalid JSON format');
+    }
+  }
+  
+  /**
+   * Export current diagram to JointJS format
+   */
+  exportToJointJSData(): JointJSGraph {
+    return this.schemaService.exportToJointJSData();
+  }
+  
+  /**
+   * Export current diagram to JSON string
+   */
+  exportToJSONString(): string {
+    return this.schemaService.exportToJSONString();
+  }
+  
+  /**
+   * Clear the entire diagram
+   */
+  clearDiagram(): void {
+    this.schemaService.clearSchema();
+  }
+  
+  /**
+   * Load sample data for testing
+   */
+  loadSampleData(): void {
+    const sampleData: JointJSGraph = {
+      cells: [
+        {
+          type: 'standard.Rectangle',
+          id: 'table_users',
+          position: { x: 100, y: 100 },
+          size: { width: 200, height: 120 },
+          attrs: {
+            label: { text: 'Users' },
+            'row@0-name': { text: 'id' },
+            'row@0-type': { text: 'INT' },
+            'row@0-meta': { pk: true, fk: false },
+            'row@1-name': { text: 'name' },
+            'row@1-type': { text: 'VARCHAR(255)' },
+            'row@1-meta': { pk: false, fk: false },
+            'row@2-name': { text: 'email' },
+            'row@2-type': { text: 'VARCHAR(255)' },
+            'row@2-meta': { pk: false, fk: false }
+          }
+        },
+        {
+          type: 'standard.Rectangle',
+          id: 'table_orders',
+          position: { x: 400, y: 100 },
+          size: { width: 200, height: 120 },
+          attrs: {
+            label: { text: 'Orders' },
+            'row@0-name': { text: 'id' },
+            'row@0-type': { text: 'INT' },
+            'row@0-meta': { pk: true, fk: false },
+            'row@1-name': { text: 'user_id' },
+            'row@1-type': { text: 'INT' },
+            'row@1-meta': { pk: false, fk: true },
+            'row@2-name': { text: 'total' },
+            'row@2-type': { text: 'DECIMAL(10,2)' },
+            'row@2-meta': { pk: false, fk: false }
+          }
+        },
+        {
+          type: 'standard.Link',
+          id: 'rel_users_orders',
+          source: { id: 'table_users' },
+          target: { id: 'table_orders' },
+          labels: [{
+            attrs: {
+              text: { text: '1:n' }
+            },
+            position: 0.5
+          }]
+        }
+      ]
+    };
+    
+    this.loadFromJointJSData(sampleData);
+  }
+
+  /**
+   * Force reinitialize the diagram - useful for debugging rendering issues
+   */
+  reinitializeDiagram(): void {
+    console.log('Force reinitializing diagram...');
+    
+    // Clean up existing instances
+    if (this.paper) {
+      this.paper.remove();
+    }
+    if (this.graph) {
+      this.graph.clear();
+    }
+    
+    // Clear maps
+    this.tableElementsMap.clear();
+    this.relationshipLinksMap.clear();
+    
+    // Reinitialize
+    setTimeout(() => {
+      this.initializeJointJs();
+      this.subscribeToTableChanges();
+      this.subscribeToRelationshipChanges();
+    }, 100);
+  }
+
+  /**
+   * Force resize the canvas to fit its container
+   */
+  forceResize(): void {
+    if (!this.ensureJointJSInitialized()) return;
+    
+    const element = this.diagramElement.nativeElement;
+    const parentWidth = element.offsetWidth;
+    const parentHeight = element.offsetHeight;
+    
+    console.log(`Force resizing canvas to: ${parentWidth}x${parentHeight}`);
+    
+    if (parentWidth > 0 && parentHeight > 0) {
+      try {
+        this.paper.setDimensions(parentWidth, parentHeight);
+        
+        // Also trigger a repaint
+        this.paper.drawBackground();
+        this.paper.drawGrid();
+        
+        console.log('Canvas force resized successfully');
+      } catch (error) {
+        console.error('Error force resizing canvas:', error);
+      }
+    } else {
+      console.warn('Cannot resize canvas: invalid dimensions', { parentWidth, parentHeight });
+    }
+  }
+
+  /**
+   * Debug method to check canvas dimensions and state
+   */
+  debugCanvasState(): void {
+    console.log('=== Canvas Debug Info ===');
+    console.log('JointJS initialized:', this.isJointJSInitialized());
+    
+    if (this.diagramElement?.nativeElement) {
+      const element = this.diagramElement.nativeElement;
+      console.log('Container dimensions:', {
+        offsetWidth: element.offsetWidth,
+        offsetHeight: element.offsetHeight,
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        scrollWidth: element.scrollWidth,
+        scrollHeight: element.scrollHeight
+      });
+      
+      const computedStyle = window.getComputedStyle(element);
+      console.log('Container computed style:', {
+        width: computedStyle.width,
+        height: computedStyle.height,
+        display: computedStyle.display,
+        position: computedStyle.position,
+        visibility: computedStyle.visibility
+      });
+    }
+    
+    if (this.paper) {
+      const paperSize = this.paper.getComputedSize();
+      console.log('Paper dimensions:', paperSize);
+      console.log('Current scale:', this.currentScale);
+    }
+    
+    console.log('=== End Debug Info ===');
+  }
+
+  private isJointJSInitialized(): boolean {
+    return !!(this.graph && this.paper && this.diagramElement?.nativeElement);
+  }
+
+  private ensureJointJSInitialized(): boolean {
+    if (!this.isJointJSInitialized()) {
+      console.warn('JointJS not initialized, attempting to initialize...');
+      this.initializeJointJs();
+      return this.isJointJSInitialized();
+    }
+    return true;
   }
 } 

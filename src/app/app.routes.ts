@@ -28,5 +28,10 @@ export const routes: Routes = [
     path: 'schema',
     canActivate: [AuthGuard],
     component: SchemaComponent
+  },
+  {
+    path: 'schema/:id',
+    canActivate: [AuthGuard],
+    component: SchemaComponent
   }
 ];

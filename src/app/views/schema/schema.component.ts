@@ -1,4 +1,5 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FooterService } from '../../core/footer/services/footer.service';
 import { HighlightModule } from 'ngx-highlightjs';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +9,8 @@ import { DiagramComponent } from './component/diagram/diagram.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
+import { SchemaService } from './services/schema.service';
+import { SchemaBackendService } from './services/schema-backend.service';
 
 @Component({
   selector: 'app-schema',
@@ -24,7 +27,9 @@ import { CommonModule } from '@angular/common';
   templateUrl: './schema.component.html',
   styleUrl: './schema.component.scss',
 })
-export class SchemaComponent implements OnDestroy {
+export class SchemaComponent implements OnInit, OnDestroy {
+  @ViewChild(DiagramComponent) diagramComponent!: DiagramComponent;
+  
   activeEditor: 'table' | 'code' = 'table';
   
   // Resizable panel properties
@@ -40,11 +45,29 @@ export class SchemaComponent implements OnDestroy {
   private boundOnResize = this.onResize.bind(this);
   private boundOnResizeEnd = this.onResizeEnd.bind(this);
 
-  constructor(private footerService: FooterService) { }
+  // Schema loading state
+  isLoadingSchema = false;
+  schemaLoadError: string | null = null;
+
+  // Schema saving state
+  isSavingSchema = false;
+  saveSuccess: boolean = false;
+  saveError: string | null = null;
+
+  // Current schema ID from route
+  currentSchemaId: string | null = null;
+
+  constructor(
+    private footerService: FooterService,
+    private route: ActivatedRoute,
+    private schemaService: SchemaService,
+    private schemaBackendService: SchemaBackendService
+  ) { }
 
   ngOnInit() {
-    this.footerService.setFooterVisibility(false); //adicionar isso para esconder o footer
+    this.footerService.setFooterVisibility(false);
     this.initializeResizablePanels();
+    this.loadSchemaFromRoute();
   }
 
   ngOnDestroy() {
@@ -121,5 +144,91 @@ export class SchemaComponent implements OnDestroy {
     
     // Save the current editor width to localStorage
     localStorage.setItem('schema-editor-width', this.editorWidth.toString());
+  }
+
+  private loadSchemaFromRoute() {
+    const schemaId = this.route.snapshot.paramMap.get('id');
+    if (schemaId) {
+      console.log('Loading schema with ID:', schemaId);
+      this.currentSchemaId = schemaId; // Store the current schema ID
+      this.isLoadingSchema = true;
+      this.schemaLoadError = null;
+      
+      // Get the raw API response with cells
+      this.schemaBackendService.getSchemaDetails(schemaId).subscribe({
+        next: (response) => {
+          console.log('Raw API response:', response);
+          
+          // Build JointJS graph object from the cells array
+          const jointjsGraph = {
+            cells: response.cells || []
+          };
+          
+          console.log('Built JointJS graph:', jointjsGraph);
+          
+          // Set loading to false first so the diagram component gets rendered
+          this.isLoadingSchema = false;
+          
+          // Use setTimeout to ensure the diagram component is initialized after the template updates
+          setTimeout(() => {
+            if (this.diagramComponent) {
+              // Clear existing data first
+              this.diagramComponent.clearDiagram();
+              
+              // Then load the new data
+              this.diagramComponent.loadFromJointJSData(jointjsGraph);
+              console.log('Schema loaded successfully into diagram');
+            } else {
+              console.error('Diagram component not available');
+              this.schemaLoadError = 'Failed to initialize diagram component';
+            }
+          }, 100);
+        },
+        error: (error: any) => {
+          this.schemaLoadError = `Error loading schema: ${error.message}`;
+          console.error('Error loading schema:', error);
+          this.isLoadingSchema = false;
+        }
+      });
+    }
+  }
+
+  /**
+   * Save the current schema
+   */
+  saveSchema(): void {
+    if (!this.currentSchemaId) {
+      console.error('No schema ID available for saving');
+      this.saveError = 'No schema ID available for saving';
+      return;
+    }
+
+    this.isSavingSchema = true;
+    this.saveError = null;
+    this.saveSuccess = false;
+
+    // Get current schema data from the service
+    this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
+      next: (response) => {
+        console.log('Schema saved successfully:', response);
+        this.isSavingSchema = false;
+        this.saveSuccess = true;
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          this.saveSuccess = false;
+        }, 3000);
+      },
+      error: (error: any) => {
+        console.error('Error saving schema:', error);
+        this.saveError = `Error saving schema: ${error.message}`;
+        this.isSavingSchema = false;
+        
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          this.saveError = null;
+        }, 5000);
+      }
+    });
   }
 }

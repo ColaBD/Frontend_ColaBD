@@ -9,6 +9,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { SchemaService, TableDefinition, TableColumn, TableIndex } from '../../services/schema.service';
+import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
 
@@ -199,5 +200,95 @@ export class TableEditorComponent implements OnInit {
   generateSql(table: TableDefinition): string {
     // This would generate the SQL statement based on the table definition
     return `CREATE TABLE ${table.name} (\n  // columns definition\n);`;
+  }
+
+  // JointJS Data Import/Export Methods
+
+  /**
+   * Load schema from JointJS graph data
+   */
+  loadFromJointJSData(jointjsData: JointJSGraph): void {
+    try {
+      this.schemaService.loadFromJointJSData(jointjsData);
+      // Tables will be automatically updated through the subscription
+      console.log('Table editor loaded from JointJS data');
+    } catch (error) {
+      console.error('Failed to load table editor from JointJS data:', error);
+    }
+  }
+
+  /**
+   * Load schema from JSON string
+   */
+  loadFromJSONString(jsonString: string): void {
+    try {
+      this.schemaService.loadFromJSONString(jsonString);
+    } catch (error) {
+      console.error('Failed to load table editor from JSON string:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export current schema to JointJS format
+   */
+  exportToJointJSData(): JointJSGraph {
+    return this.schemaService.exportToJointJSData();
+  }
+
+  /**
+   * Export current schema to JSON string
+   */
+  exportToJSONString(): string {
+    return this.schemaService.exportToJSONString();
+  }
+
+  /**
+   * Clear all tables and relationships
+   */
+  clearSchema(): void {
+    this.schemaService.clearSchema();
+  }
+
+  /**
+   * Download schema as JSON file
+   */
+  downloadSchemaAsJSON(): void {
+    try {
+      const jsonString = this.exportToJSONString();
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'schema.json';
+      link.click();
+      
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download schema as JSON:', error);
+    }
+  }
+
+  /**
+   * Handle file input for importing JSON schema
+   */
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const jsonString = e.target?.result as string;
+          this.loadFromJSONString(jsonString);
+        } catch (error) {
+          console.error('Failed to load schema from file:', error);
+          alert('Erro ao carregar arquivo: formato JSON inválido');
+        }
+      };
+      reader.readAsText(file);
+    }
   }
 } 
