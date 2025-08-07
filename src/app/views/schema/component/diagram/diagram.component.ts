@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as joint from 'jointjs';
 import * as $ from 'jquery';
+import html2canvas from 'html2canvas';
 import { SchemaService, TableDefinition, Relationship, RelationshipType } from '../../services/schema.service';
 import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { Subscription } from 'rxjs';
@@ -1389,5 +1390,136 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       return this.isJointJSInitialized();
     }
     return true;
+  }
+
+  /**
+   * Take a screenshot of the canvas using browser screenshot API
+   */
+  async takeScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
+    if (!this.diagramElement?.nativeElement) {
+      console.error('Diagram element not available');
+      return;
+    }
+
+    try {
+      const canvasElement = this.diagramElement.nativeElement;
+      
+      // Temporarily hide the controls during screenshot
+      const controlsElement = canvasElement.parentElement?.querySelector('.diagram-controls') as HTMLElement;
+      const originalDisplay = controlsElement?.style.display || '';
+      if (controlsElement) {
+        controlsElement.style.display = 'none';
+      }
+
+      // Use html2canvas to capture the element
+      const canvas = await html2canvas(canvasElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: canvasElement.scrollWidth,
+        height: canvasElement.scrollHeight,
+        ignoreElements: (element) => {
+          // Ignore the controls panel
+          return element.classList.contains('diagram-controls');
+        }
+      });
+
+      // Download the image
+      canvas.toBlob((blob: Blob | null) => {
+        if (blob) {
+          this.downloadBlob(blob, filename);
+          console.log('Screenshot captured successfully!');
+        }
+      }, 'image/png', 1.0);
+
+      // Restore controls visibility
+      if (controlsElement) {
+        controlsElement.style.display = originalDisplay;
+      }
+
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+      // Fallback to canvas method
+      try {
+        await this.captureWithCanvas(this.diagramElement.nativeElement, filename);
+      } catch (fallbackError) {
+        console.error('Fallback method also failed:', fallbackError);
+        alert('Erro ao capturar screenshot. Tente novamente.');
+      }
+    }
+  }
+
+  private async captureWithCanvas(element: HTMLElement, filename: string): Promise<void> {
+    // Create a canvas with the same dimensions as the element
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Could not get canvas context');
+    }
+
+    // Set canvas size
+    const rect = element.getBoundingClientRect();
+    canvas.width = rect.width * 2; // 2x for better quality
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
+
+    // Fill with white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    // Try to get SVG content from JointJS paper
+    if (this.paper?.svg) {
+      const svgElement = this.paper.svg;
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      
+      // Create image from SVG
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Failed to load SVG'));
+        };
+        img.src = url;
+      });
+
+      // Download the image
+      canvas.toBlob((blob) => {
+        if (blob) {
+          this.downloadBlob(blob, filename);
+          console.log('Screenshot captured with canvas fallback!');
+        }
+      }, 'image/png', 1.0);
+    } else {
+      throw new Error('No SVG content available');
+    }
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Take a clean screenshot by directly manipulating the SVG
+   */
+  async takeCleanScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
+    // Deprecated - use takeScreenshot instead
+    return this.takeScreenshot(filename);
   }
 } 

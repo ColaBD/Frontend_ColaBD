@@ -6,7 +6,8 @@ import {
   SchemasListResponse, 
   SchemaByIdResponse, 
   SchemaListItem, 
-  SchemaDetailsResponse 
+  SchemaDetailsResponse,
+  SchemaApiResponse 
 } from "../models/schema-api.models";
 
 @Injectable({
@@ -70,6 +71,21 @@ export class SchemaApiService {
   public getSchemaById(schemaId: string): Observable<SchemaDetailsResponse> {
     const url = `${this.endpointSchemas}/${schemaId}`;
     return this.http.get<SchemaByIdResponse>(url, this.obterHeadersAutorizacao())
+      .pipe(
+        map((response) => response.data),
+        catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
+      );
+  }
+
+  /**
+   * Create a new schema using POST /schemas endpoint
+   */
+  public createSchema(title: string): Observable<SchemaListItem> {
+    const requestBody = {
+      title: title
+    };
+    
+    return this.http.post<SchemaApiResponse<SchemaListItem>>(this.endpointSchemas, requestBody, this.obterHeadersAutorizacao())
       .pipe(
         map((response) => response.data),
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))

@@ -1,12 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { FooterService } from '../../core/footer/services/footer.service';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { SchemaApiService } from '../schema/services/schema-api.service';
 import { SchemaListItem } from '../schema/models/schema-api.models';
+import { CreateSchemaModalComponent } from '../../shared/components/create-schema-modal/create-schema-modal.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -28,7 +30,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   constructor(
     private footerService: FooterService,
     private schemaApiService: SchemaApiService,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog
   ) {}
   
   ngOnInit() {
@@ -70,8 +73,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   onCreateNewSchema() {
-    // Navigate to create new schema
-    console.log('Create new schema clicked');
-    this.router.navigate(['/schema']);
+    // Open modal to get schema title
+    const dialogRef = this.dialog.open(CreateSchemaModalComponent, {
+      width: '450px',
+      disableClose: false,
+      autoFocus: true
+    });
+
+    dialogRef.afterClosed().subscribe(title => {
+      if (title) {
+        this.createNewSchema(title);
+      }
+    });
+  }
+
+  private createNewSchema(title: string) {
+    console.log('Creating new schema with title:', title);
+    this.isLoading = true;
+    this.error = null;
+
+    this.schemaApiService.createSchema(title).subscribe({
+      next: (newSchema) => {
+        console.log('Schema created successfully:', newSchema);
+        // Navigate to the new schema editor
+        this.router.navigate(['/schema', newSchema.schema_id]);
+      },
+      error: (error) => {
+        this.error = `Failed to create schema: ${error.message}`;
+        this.isLoading = false;
+        console.error('Error creating schema:', error);
+      }
+    });
   }
 }
