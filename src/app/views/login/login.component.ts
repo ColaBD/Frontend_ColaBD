@@ -60,14 +60,14 @@ export class LoginComponent {
 
   processarSucesso() {
     this.toastrService.success(
-      `Login Succed`,
-      'Success'
+      `Login realizado com sucesso`,
+      'Sucesso'
     );
 
     this.router.navigate(['/dashboard']);
   }
 
   processarFalha(error: Error){
-    this.toastrService.error(error.message, 'Error');
+    this.toastrService.error(error.message, 'Erro');
   }
 }

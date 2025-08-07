@@ -1,42 +1,42 @@
 <section class="login-container">
-  <h2 class="title">Hello Again!</h2>
-  <p class="subtitle">Welcome Back You've Been Missed!</p>
+  <h2 class="title">Olá Novamente!</h2>
+  <p class="subtitle">Bem-vindo de Volta, Sentimos sua Falta!</p>
   
   <!-- <pre>{{ form.value | json }}</pre> -->
   <form [formGroup]="form" (ngSubmit)="login()">
 
     <mat-form-field appearance="outline" class="input-email mt-3">
-      <mat-label>Enter your e-mail</mat-label>
-      <input matInput placeholder="Username" formControlName="email" />
+      <mat-label>Digite seu e-mail</mat-label>
+      <input matInput placeholder="Nome de usuário" formControlName="email" />
       <mat-hint>E-mail</mat-hint>
     </mat-form-field>
 
     <div class="password-field d-flex mt-3">
       <mat-form-field appearance="outline" class="input-password mt-2">
-        <mat-label>Enter your password</mat-label>
+        <mat-label>Digite sua senha</mat-label>
         <input matInput [type]="hide() ? 'password' : 'text'" formControlName="password"/>
         <button
           type="button"
           mat-icon-button
           matSuffix
           (click)="clickEvent($event)"
-          [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+          [attr.aria-label]="hide() ? 'Mostrar senha' : 'Ocultar senha'"
           [attr.aria-pressed]="hide()">
 
           <i class="bi" [ngClass]="hide() ? 'bi-eye-slash' : 'bi-eye'"></i>
         </button>
-        <mat-hint>Password</mat-hint>
+        <mat-hint>Senha</mat-hint>
       </mat-form-field>
     </div>
     <div class="reset-password">
       <a mat-flat-button type="button" href="/register" class="link-reset-password">
-        Forget Password?
+        Esqueceu a Senha?
       </a>
     </div>
 
-    <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-4 text-white">Sign In</button>
+    <button mat-stroked-button type="submit" class="btn btn-primary btnSignIn corFundoBtnGradiente mt-4 text-white">Entrar</button>
 
-    <p class="continue-text">( Or Continue With )</p>
+    <p class="continue-text">( Ou Continue Com )</p>
 
     <div class="social-login">
       <button mat-stroked-button>
@@ -47,6 +47,6 @@
       </button>
     </div>
 
-    <p class="signup-text">Don't have an Account? <br> <a href="/register">SIGN UP</a></p>
+    <p class="signup-text">Não tem uma Conta? <br> <a href="/register">CADASTRAR</a></p>
   </form>
 </section>

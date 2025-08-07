@@ -5,14 +5,16 @@ a {
 }
 
 .footer {
-  background-color: #f7fafe; /* Cor de fundo parecida com a da imagem */
+  background-color: #f7fafe;
   text-align: center;
-  padding: 10px;
+  padding: 15px 10px;
   font-size: 14px;
   color: #666;
   position: fixed;
   bottom: 0;
+  left: 0;
   width: 100%;
+  z-index: 1000;
 }
 
 .social {
@@ -20,12 +22,45 @@ a {
   justify-content: center;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.social a {
+  white-space: nowrap;
 }
 
 .icon {
   font-size: 16px;
+  color: #666;
 }
 
 .copyright {
-  margin-top: 5px;
+  margin: 5px 0 0 0;
+  font-size: 12px;
+  color: #888;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .footer {
+    padding: 10px 5px;
+    font-size: 12px;
+  }
+  
+  .social {
+    gap: 8px;
+  }
+  
+  .social a {
+    font-size: 12px;
+  }
+  
+  .icon {
+    font-size: 14px;
+  }
+  
+  .copyright {
+    font-size: 10px;
+  }
 }

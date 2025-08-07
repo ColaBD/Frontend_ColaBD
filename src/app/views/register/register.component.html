@@ -1,35 +1,35 @@
 <section class="register-container">
-  <h2 class="title">Haven't registered yet?</h2>
-  <p class="subtitle">No problem, register by entering your information</p>
+  <h2 class="title">Ainda não se registrou?</h2>
+  <p class="subtitle">Sem problema, registre-se inserindo suas informações</p>
 
   <form [formGroup]="form" (ngSubmit)="register()">
     <mat-form-field appearance="outline" class="input-info mt-4">
-      <mat-label>Enter your username</mat-label>
-      <input matInput placeholder="Username" formControlName="name"/>
-      <mat-hint>Username</mat-hint>
+      <mat-label>Digite seu nome de usuário</mat-label>
+      <input matInput placeholder="Nome de usuário" formControlName="name"/>
+      <mat-hint>Nome de usuário</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="input-info mt-5">
-      <mat-label>Enter your e-mail</mat-label>
+      <mat-label>Digite seu e-mail</mat-label>
       <input matInput placeholder="E-mail" formControlName="email"/>
       <mat-hint>E-mail</mat-hint>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="input-info mt-5">
-      <mat-label>Enter your password</mat-label>
+      <mat-label>Digite sua senha</mat-label>
       <input matInput [type]="hide() ? 'password' : 'text'" formControlName="password"/>
       <button type="button" mat-icon-button matSuffix (click)="clickEvent($event)"
-        [attr.aria-label]="hide() ? 'Show password' : 'Hide password'" [attr.aria-pressed]="hide()">
+        [attr.aria-label]="hide() ? 'Mostrar senha' : 'Ocultar senha'" [attr.aria-pressed]="hide()">
 
         <i class="bi" [ngClass]="hide() ? 'bi-eye-slash' : 'bi-eye'"></i>
       </button>
-      <mat-hint>Password</mat-hint>
+      <mat-hint>Senha</mat-hint>
     </mat-form-field>
 
     <button mat-stroked-button type="submit"
-      class="btn btn-primary btnSignIn corFundoBtnGradiente mt-5 text-white">Register</button>
+      class="btn btn-primary btnSignIn corFundoBtnGradiente mt-5 text-white">Registrar</button>
 
-    <p class="continue-text">( Or Continue With )</p>
+    <p class="continue-text">( Ou Continue Com )</p>
 
     <div class="social-register">
       <button mat-stroked-button>

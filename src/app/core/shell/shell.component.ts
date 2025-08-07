@@ -78,6 +78,6 @@ export class ShellComponent {
   }
 
   processarFalha(error: Error) {
-    this.toastService.error(error.message, 'Error');
+    this.toastService.error(error.message, 'Erro');
   }
 }

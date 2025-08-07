@@ -8,6 +8,19 @@ mat-sidenav-container{
   height: 100vh;
 }
 
+mat-sidenav-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px; /* Space for footer */
+  min-height: calc(100vh - 64px - 80px); /* Full height minus header and footer */
+}
+
 a {
   text-decoration: none;
   color: inherit;

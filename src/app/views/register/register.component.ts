@@ -58,8 +58,8 @@ export class RegisterComponent {
 
   processarSucesso() {
     this.toastrService.success(
-      `Register Succed`,
-      'Success'
+      `Registro realizado com sucesso`,
+      'Sucesso'
     );
 
     this.router.navigate(['/login']);

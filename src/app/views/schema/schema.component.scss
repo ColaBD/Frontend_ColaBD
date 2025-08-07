@@ -207,15 +207,4 @@ h5{
   margin: 5px;
 }
 
-.footer{
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: #333;
-  color: white;
-  // padding: 15px;
-
-  justify-content: end;
-  align-items: center;
-}
+// Removed duplicate footer styles that were conflicting with the main footer component
