@@ -19,17 +19,17 @@ import { MatFormFieldModule } from '@angular/material/form-field';
   ],
   template: `
     <div class="create-schema-modal">
-      <h2 mat-dialog-title>Create New Schema</h2>
+      <h2 mat-dialog-title>Criar Novo Schema</h2>
       
       <mat-dialog-content>
-        <p>Enter a title for your new database schema:</p>
+        <p>Digite um título para o seu novo schema de banco de dados:</p>
         
         <mat-form-field class="w-100">
-          <mat-label>Schema Title</mat-label>
+          <mat-label>Título do Schema</mat-label>
           <input 
             matInput 
             [(ngModel)]="title" 
-            placeholder="e.g., E-commerce Database"
+            placeholder="ex: Banco de Dados E-commerce"
             (keydown.enter)="onCreate()"
             #titleInput
             maxlength="100">
@@ -42,7 +42,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
           mat-button 
           (click)="onCancel()"
           type="button">
-          Cancel
+          Cancelar
         </button>
         <button 
           mat-raised-button 
@@ -50,7 +50,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
           (click)="onCreate()"
           [disabled]="!title.trim()"
           type="button">
-          Create Schema
+          Criar Schema
         </button>
       </mat-dialog-actions>
     </div>

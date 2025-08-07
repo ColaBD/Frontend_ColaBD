@@ -99,7 +99,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.router.navigate(['/schema', newSchema.schema_id]);
       },
       error: (error) => {
-        this.error = `Failed to create schema: ${error.message}`;
+        this.error = `Falha ao criar schema: ${error.message}`;
         this.isLoading = false;
         console.error('Error creating schema:', error);
       }
