@@ -32,9 +32,38 @@
                       <input type="text" [(ngModel)]="table.name" (change)="updateTable(table)">
                     </div>
                     
-                    <div class="columns-container">
+                    <div class="columns-container" 
+                         cdkDropList 
+                         [cdkDropListData]="table.columns"
+                         [cdkDropListConnectedTo]="getDropListIds()"
+                         [id]="'columns-' + table.id"
+                         (cdkDropListDropped)="onColumnDrop($event, table)">
+                      
+                      @if (table.columns.length === 0) {
+                        <div class="empty-columns-placeholder">
+                          <i class="bi bi-database"></i>
+                          <span>Arraste colunas aqui ou adicione uma nova</span>
+                        </div>
+                      }
+                      
                       @for (column of table.columns; track column.name; let j = $index) {
-                        <div class="column-row">
+                        <div class="column-row" 
+                             cdkDrag 
+                             [cdkDragData]="getDragData(column)"
+                             [cdkDragDisabled]="!canDropColumn(column, table)">
+                          
+                          <!-- Drag Handle -->
+                          <div class="drag-handle" cdkDragHandle matTooltip="Arrastar coluna">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M6 2C6 1.44772 6.44772 1 7 1C7.55228 1 8 1.44772 8 2C8 2.55228 7.55228 3 7 3C6.44772 3 6 2.55228 6 2Z" fill="#6C757D"/>
+                              <path d="M6 8C6 7.44772 6.44772 7 7 7C7.55228 7 8 7.44772 8 8C8 8.55228 7.55228 9 7 9C6.44772 9 6 8.55228 6 8Z" fill="#6C757D"/>
+                              <path d="M6 14C6 13.4477 6.44772 13 7 13C7.55228 13 8 13.4477 8 14C8 14.5523 7.55228 15 7 15C6.44772 15 6 14.5523 6 14Z" fill="#6C757D"/>
+                              <path d="M10 2C10 1.44772 10.4477 1 11 1C11.5523 1 12 1.44772 12 2C12 2.55228 11.5523 3 11 3C10.4477 3 10 2.55228 10 2Z" fill="#6C757D"/>
+                              <path d="M10 8C10 7.44772 10.4477 7 11 7C11.5523 7 12 7.44772 12 8C12 8.55228 11.5523 9 11 9C10.4477 9 10 8.55228 10 8Z" fill="#6C757D"/>
+                              <path d="M10 14C10 13.4477 10.4477 13 11 13C11.5523 13 12 13.4477 12 14C12 14.5523 11.5523 15 11 15C10.4477 15 10 14.5523 10 14Z" fill="#6C757D"/>
+                            </svg>
+                          </div>
+
                           <div class="column-name">
                             <input type="text" [(ngModel)]="column.name" (change)="updateTable(table)">
                           </div>

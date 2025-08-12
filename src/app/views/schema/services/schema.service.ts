@@ -349,11 +349,11 @@ export class SchemaService {
   }
   
   /**
-   * Save schema to backend
+   * Save schema to backend with optional canvas image
    */
-  saveSchemaToBackend(schemaId?: string): Observable<{ id: string, message: string }> {
+  saveSchemaToBackend(schemaId?: string, canvas?: HTMLCanvasElement): Observable<{ id: string, message: string }> {
     const jointjsData = this.exportToJointJSData();
-    return this.backendService.saveSchema(jointjsData, schemaId);
+    return this.backendService.saveSchema(jointjsData, schemaId, canvas);
   }
   
   /**

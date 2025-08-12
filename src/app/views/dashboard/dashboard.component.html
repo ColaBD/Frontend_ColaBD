@@ -41,17 +41,40 @@
                 <!-- Existing Schemas -->
                 @for(schema of schemas; track schema.id) {
                     <div class="col">
-                        <button 
-                            mat-stroked-button 
-                            class="quadrado schema-item"
-                            (click)="onSchemaClick(schema)"
-                            [title]="'Schema ID: ' + schema.schema_id">
-                            <div class="schema-content">
-                                <i class="fas fa-database fa-2x"></i>
-                                <span class="schema-id">{{ schema.schema_id.substring(0, 8) }}...</span>
-                                <small class="text-muted">{{ schema.id.substring(0, 8) }}...</small>
+                        <div class="schema-card">
+                            <!-- Menu dropdown -->
+                            <div class="schema-menu">
+                                <button class="menu-button" (click)="toggleSchemaMenu($event, schema.id)">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <div class="menu-dropdown" [class.show]="activeMenuId === schema.id">
+                                    <button class="menu-item" (click)="onSchemaClick(schema)">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </button>
+                                    <button class="menu-item" (click)="duplicateSchema(schema)">
+                                        <i class="bi bi-files"></i> Duplicar
+                                    </button>
+                                    <button class="menu-item delete" (click)="deleteSchema(schema)">
+                                        <i class="bi bi-trash"></i> Excluir
+                                    </button>
+                                </div>
                             </div>
-                        </button>
+
+                            <!-- Schema content -->
+                            <div class="schema-content" (click)="onSchemaClick(schema)">
+                                <div class="schema-image">
+                                    <img 
+                                        [src]="getSchemaImageUrl(schema)" 
+                                        [alt]="schema.title"
+                                        class="schema-thumbnail"
+                                        (error)="onImageError($event)">
+                                </div>
+                                <div class="schema-info">
+                                    <h6 class="schema-title">{{ schema.title }}</h6>
+                                    <small class="schema-date">{{ formatDate(schema.updated_at) }}</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 }
 

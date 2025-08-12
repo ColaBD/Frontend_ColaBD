@@ -98,7 +98,6 @@
   }
 }
 
-
 .table-details {
   padding: 12px;
   
@@ -130,15 +129,102 @@
   border: 1px solid #eee;
   border-radius: 4px;
   overflow: hidden;
+  min-height: 50px;
+  
+  &.cdk-drop-list-dragging {
+    transition: background-color 0.2s ease;
+  }
+  
+  &.cdk-drop-list-receiving {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    border-width: 2px;
+  }
+  
+  .empty-columns-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #999;
+    font-size: 12px;
+    text-align: center;
+    
+    i {
+      font-size: 24px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    
+    span {
+      font-style: italic;
+    }
+  }
   
   .column-row {
     display: flex;
     align-items: center;
     padding: 6px;
     border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
     
     &:last-child {
       border-bottom: none;
+    }
+
+    &.cdk-drag-preview {
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.23);
+      border-radius: 4px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+    }
+
+    &.cdk-drag-animating {
+      transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    &.cdk-drag-placeholder {
+      opacity: 0;
+      background-color: #f5f5f5;
+      border: 2px dashed #ccc;
+    }
+
+    &.cdk-drag-disabled {
+      opacity: 0.6;
+      
+      .drag-handle {
+        opacity: 0.3;
+        cursor: not-allowed;
+        
+        svg path {
+          fill: #ccc;
+        }
+      }
+    }
+    
+    .drag-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      cursor: grab;
+      opacity: 0.6;
+      transition: opacity 0.2s ease;
+      
+      &:hover {
+        opacity: 1;
+      }
+      
+      &:active {
+        cursor: grabbing;
+      }
+      
+      svg {
+        pointer-events: none;
+      }
     }
     
     .column-name {

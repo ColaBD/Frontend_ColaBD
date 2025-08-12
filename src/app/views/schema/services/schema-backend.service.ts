@@ -47,17 +47,48 @@ export class SchemaBackendService {
   }
 
   /**
-   * Save schema to backend (placeholder - will need implementation based on dashboard API)
+   * Save schema to backend with optional canvas image
    */
-  saveSchema(schema: JointJSGraph, schemaId?: string): Observable<{ id: string, message: string }> {
+  saveSchema(schema: JointJSGraph, schemaId?: string, canvas?: HTMLCanvasElement): Observable<{ id: string, message: string }> {
     if (schemaId) {
-      // Update existing schema using the schema API service
-      return this.schemaApiService.saveSchema(schemaId, schema.cells).pipe(
-        map(response => ({
-          id: schemaId,
-          message: response.message || 'Schema saved successfully'
-        }))
-      );
+      // If canvas is provided, convert it to blob and include in the save
+      if (canvas) {
+        return new Observable(observer => {
+          this.schemaApiService.canvasToBlob(canvas).then(blob => {
+            this.schemaApiService.saveSchema(schemaId, schema.cells, blob).subscribe({
+              next: response => {
+                observer.next({
+                  id: schemaId,
+                  message: response.message || 'Schema saved successfully'
+                });
+                observer.complete();
+              },
+              error: error => observer.error(error)
+            });
+          }).catch(error => {
+            console.warn('Failed to capture canvas image, saving without image:', error);
+            // Fallback: save without image
+            this.schemaApiService.saveSchema(schemaId, schema.cells).subscribe({
+              next: response => {
+                observer.next({
+                  id: schemaId,
+                  message: response.message || 'Schema saved successfully (without image)'
+                });
+                observer.complete();
+              },
+              error: error => observer.error(error)
+            });
+          });
+        });
+      } else {
+        // Update existing schema without image
+        return this.schemaApiService.saveSchema(schemaId, schema.cells).pipe(
+          map(response => ({
+            id: schemaId,
+            message: response.message || 'Schema saved successfully'
+          }))
+        );
+      }
     } else {
       // Create new schema - placeholder implementation (would need schema creation endpoint)
       return this.http.post<{ id: string, message: string }>(this.baseUrl, schema);

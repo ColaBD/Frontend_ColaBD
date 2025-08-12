@@ -194,9 +194,9 @@ export class SchemaComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Save the current schema
+   * Save the current schema with canvas image
    */
-  saveSchema(): void {
+  async saveSchema(): Promise<void> {
     if (!this.currentSchemaId) {
       console.error('No schema ID available for saving');
       this.saveError = 'No schema ID available for saving';
@@ -207,28 +207,61 @@ export class SchemaComponent implements OnInit, OnDestroy {
     this.saveError = null;
     this.saveSuccess = false;
 
-    // Get current schema data from the service
-    this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
-      next: (response) => {
-        console.log('Schema saved successfully:', response);
-        this.isSavingSchema = false;
-        this.saveSuccess = true;
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          this.saveSuccess = false;
-        }, 3000);
-      },
-      error: (error: any) => {
-        console.error('Error saving schema:', error);
-        this.saveError = `Error saving schema: ${error.message}`;
-        this.isSavingSchema = false;
-        
-        // Clear error message after 5 seconds
-        setTimeout(() => {
-          this.saveError = null;
-        }, 5000);
+    try {
+      // Try to get canvas from diagram component
+      let canvas: HTMLCanvasElement | null = null;
+      if (this.diagramComponent) {
+        canvas = await this.diagramComponent.getCanvasForSave();
       }
-    });
+
+      // Get current schema data from the service and save with canvas
+      this.schemaService.saveSchemaToBackend(this.currentSchemaId, canvas || undefined).subscribe({
+        next: (response) => {
+          console.log('Schema saved successfully:', response);
+          this.isSavingSchema = false;
+          this.saveSuccess = true;
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            this.saveSuccess = false;
+          }, 3000);
+        },
+        error: (error: any) => {
+          console.error('Error saving schema:', error);
+          this.saveError = `Error saving schema: ${error.message}`;
+          this.isSavingSchema = false;
+          
+          // Clear error message after 5 seconds
+          setTimeout(() => {
+            this.saveError = null;
+          }, 5000);
+        }
+      });
+    } catch (error) {
+      console.error('Error capturing canvas:', error);
+      // Fallback: save without canvas
+      this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
+        next: (response) => {
+          console.log('Schema saved successfully (without image):', response);
+          this.isSavingSchema = false;
+          this.saveSuccess = true;
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            this.saveSuccess = false;
+          }, 3000);
+        },
+        error: (error: any) => {
+          console.error('Error saving schema:', error);
+          this.saveError = `Error saving schema: ${error.message}`;
+          this.isSavingSchema = false;
+          
+          // Clear error message after 5 seconds
+          setTimeout(() => {
+            this.saveError = null;
+          }, 5000);
+        }
+      });
+    }
   }
 }

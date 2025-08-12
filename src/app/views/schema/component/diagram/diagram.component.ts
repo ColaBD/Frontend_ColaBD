@@ -1518,6 +1518,52 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   /**
    * Take a clean screenshot by directly manipulating the SVG
    */
+  /**
+   * Get canvas element for schema saving (without downloading)
+   */
+  async getCanvasForSave(): Promise<HTMLCanvasElement | null> {
+    if (!this.diagramElement?.nativeElement) {
+      console.error('Diagram element not available');
+      return null;
+    }
+
+    try {
+      const canvasElement = this.diagramElement.nativeElement;
+      
+      // Temporarily hide the controls during capture
+      const controlsElement = canvasElement.parentElement?.querySelector('.diagram-controls') as HTMLElement;
+      const originalDisplay = controlsElement?.style.display || '';
+      if (controlsElement) {
+        controlsElement.style.display = 'none';
+      }
+
+      // Use html2canvas to capture the element
+      const canvas = await html2canvas(canvasElement, {
+        backgroundColor: '#ffffff',
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: canvasElement.scrollWidth,
+        height: canvasElement.scrollHeight,
+        ignoreElements: (element) => {
+          // Ignore the controls panel
+          return element.classList.contains('diagram-controls');
+        }
+      });
+
+      // Restore controls visibility
+      if (controlsElement) {
+        controlsElement.style.display = originalDisplay;
+      }
+
+      return canvas;
+    } catch (error) {
+      console.error('Error capturing canvas for save:', error);
+      return null;
+    }
+  }
+
   async takeCleanScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
     // Deprecated - use takeScreenshot instead
     return this.takeScreenshot(filename);

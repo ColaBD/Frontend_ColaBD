@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { SchemaService, TableDefinition, TableColumn, TableIndex } from '../../services/schema.service';
 import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { ScrollingModule } from '@angular/cdk/scrolling';
@@ -26,6 +27,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     MatTooltipModule,
     MatTabsModule,
     MatExpansionModule,
+    DragDropModule,
     ScrollingModule
   ],
   templateUrl: './table-editor.component.html',
@@ -290,5 +292,73 @@ export class TableEditorComponent implements OnInit {
       };
       reader.readAsText(file);
     }
+  }
+
+  // Drag and Drop Methods
+  
+  /**
+   * Get all drop lists IDs for cross-table column transfer
+   */
+  getDropListIds(): string[] {
+    return this.tables.map(table => `columns-${table.id}`);
+  }
+
+  /**
+   * Handle column drop event
+   */
+  onColumnDrop(event: CdkDragDrop<TableColumn[]>, targetTable: TableDefinition): void {
+    const sourceTableId = event.previousContainer.id.replace('columns-', '');
+    const targetTableId = targetTable.id;
+
+    if (event.previousContainer === event.container) {
+      // Same table - just reorder columns
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+    } else {
+      // Different tables - transfer column
+      const sourceTable = this.tables.find(table => table.id === sourceTableId);
+      if (sourceTable) {
+        // Transfer column from source to target table
+        transferArrayItem(
+          event.previousContainer.data,
+          event.container.data,
+          event.previousIndex,
+          event.currentIndex
+        );
+        
+        // Update both tables in the service
+        this.schemaService.updateTable(sourceTable);
+        this.schemaService.updateTable(targetTable);
+        
+        console.log(`Column moved from table ${sourceTable.name} to table ${targetTable.name}`);
+      }
+    }
+    
+    // Update the target table
+    this.schemaService.updateTable(targetTable);
+  }
+
+  /**
+   * Check if column can be dropped (prevent dropping primary key if it would leave table without one)
+   */
+  canDropColumn(column: TableColumn, sourceTable: TableDefinition): boolean {
+    // If it's a primary key, check if source table would have another primary key
+    if (column.isPrimaryKey) {
+      const otherPrimaryKeys = sourceTable.columns.filter(col => 
+        col !== column && col.isPrimaryKey
+      );
+      // Allow dragging if there's at least one other primary key or if the table has only one column
+      return otherPrimaryKeys.length > 0 || sourceTable.columns.length === 1;
+    }
+    return true;
+  }
+
+  /**
+   * Get drag data for column
+   */
+  getDragData(column: TableColumn): any {
+    return {
+      column: column,
+      type: 'table-column'
+    };
   }
 } 

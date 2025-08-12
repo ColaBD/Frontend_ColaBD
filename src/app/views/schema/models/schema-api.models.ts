@@ -8,8 +8,12 @@ export interface SchemaApiResponse<T> {
 
 export interface SchemaListItem {
   id: string;
-  user_id: string;
-  schema_id: string;
+  inserted_at: string | null;
+  title: string;
+  database_model: string | null;
+  display_picture: string;
+  updated_at: string | null;
+  signed_image_url: string | null;
 }
 
 export interface SchemaDetails {
@@ -70,5 +74,12 @@ export interface SchemaDetailsResponse {
   database_model_id: string;
 }
 
+export interface SchemaCreateResponse {
+  message: string;
+  schema_id: string;
+  title: string;
+}
+
 export type SchemasListResponse = SchemaApiResponse<SchemaListItem[]>;
-export type SchemaByIdResponse = SchemaApiResponse<SchemaDetailsResponse>; 
+export type SchemaByIdResponse = SchemaApiResponse<SchemaDetailsResponse>;
+export type SchemaCreateApiResponse = SchemaApiResponse<SchemaCreateResponse>; 

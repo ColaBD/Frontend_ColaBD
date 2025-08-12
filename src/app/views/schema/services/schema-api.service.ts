@@ -7,14 +7,15 @@ import {
   SchemaByIdResponse, 
   SchemaListItem, 
   SchemaDetailsResponse,
-  SchemaApiResponse 
+  SchemaApiResponse,
+  SchemaCreateApiResponse 
 } from "../models/schema-api.models";
 
 @Injectable({
   providedIn: 'root'
 })
 export class SchemaApiService {
-  private endpoint: string = 'https://backend-colabd.onrender.com/';
+  private endpoint: string = 'http://127.0.0.1:8000/';
   private endpointSchemas: string = this.endpoint + 'schemas';
 
   constructor(
@@ -54,6 +55,17 @@ export class SchemaApiService {
     };
   }
 
+  private obterHeadersAutorizacaoMultipart() {
+    const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
+
+    return {
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`,
+        // Don't set Content-Type for multipart/form-data, let browser set it with boundary
+      }),
+    };
+  }
+
   /**
    * Get all schemas for the authenticated user
    */
@@ -80,30 +92,60 @@ export class SchemaApiService {
   /**
    * Create a new schema using POST /schemas endpoint
    */
-  public createSchema(title: string): Observable<SchemaListItem> {
+  public createSchema(title: string): Observable<{id: string, title: string}> {
     const requestBody = {
       title: title
     };
     
-    return this.http.post<SchemaApiResponse<SchemaListItem>>(this.endpointSchemas, requestBody, this.obterHeadersAutorizacao())
+    return this.http.post<SchemaCreateApiResponse>(this.endpointSchemas, requestBody, this.obterHeadersAutorizacao())
       .pipe(
-        map((response) => response.data),
+        map((response) => {
+          console.log('Create schema API response:', response);
+          // Return schema with id and title for navigation
+          return {
+            id: response.data.schema_id,
+            title: response.data.title
+          };
+        }),
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
       );
   }
 
   /**
-   * Save schema using PUT /schemas endpoint
+   * Save schema using PUT /schemas endpoint with multipart/form-data
    */
-  public saveSchema(schemaId: string, cells: any[]): Observable<{ success: boolean, message: string }> {
-    const requestBody = {
-      schema_id: schemaId,
-      cells: cells
-    };
+  public saveSchema(schemaId: string, cells: any[], displayPicture?: Blob): Observable<{ success: boolean, message: string }> {
+    const formData = new FormData();
     
-    return this.http.put<{ success: boolean, message: string }>(this.endpointSchemas, requestBody, this.obterHeadersAutorizacao())
+    // Add schema_id
+    formData.append('schema_id', schemaId);
+    
+    // Add cells as JSON string
+    formData.append('cells', JSON.stringify(cells));
+    
+    // Add display_picture if provided
+    if (displayPicture) {
+      formData.append('display_picture', displayPicture, 'image.png');
+    }
+    
+    return this.http.put<{ success: boolean, message: string }>(this.endpointSchemas, formData, this.obterHeadersAutorizacaoMultipart())
       .pipe(
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
       );
+  }
+
+  /**
+   * Convert canvas to blob for image upload
+   */
+  public canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to convert canvas to blob'));
+        }
+      }, 'image/png', 0.9);
+    });
   }
 } 
