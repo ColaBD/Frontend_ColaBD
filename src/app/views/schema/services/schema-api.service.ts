@@ -15,7 +15,7 @@ import {
   providedIn: 'root'
 })
 export class SchemaApiService {
-  private endpoint: string = 'http://127.0.0.1:8000/';
+  private endpoint: string = 'https://backend-colabd.onrender.com/';
   private endpointSchemas: string = this.endpoint + 'schemas';
 
   constructor(
