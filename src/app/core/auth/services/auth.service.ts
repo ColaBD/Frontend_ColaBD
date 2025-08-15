@@ -44,7 +44,7 @@ export class AuthService{
       case 500: 
         return this.returnError('Usuario não encontrado, verifique a senha e o email');
       default: 
-        return this.returnError(error.error);
+        return this.returnError(error.error?.detail || 'Erro desconhecido.');
     }
   }
 
