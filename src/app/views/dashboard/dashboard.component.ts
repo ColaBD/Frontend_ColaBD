@@ -183,8 +183,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.activeMenuId = null;
     if (confirm(`Tem certeza que deseja excluir o schema "${schema.title}"?`)) {
       console.log('Deleting schema:', schema);
-      // TODO: Implement delete functionality
-      alert('Funcionalidade de excluir em desenvolvimento');
+      this.schemaApiService.deleteSchema(schema.id).subscribe({});
     }
   }
 }

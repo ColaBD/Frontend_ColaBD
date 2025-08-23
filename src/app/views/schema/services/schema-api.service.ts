@@ -7,7 +7,6 @@ import {
   SchemaByIdResponse, 
   SchemaListItem, 
   SchemaDetailsResponse,
-  SchemaApiResponse,
   SchemaCreateApiResponse 
 } from "../models/schema-api.models";
 
@@ -66,9 +65,6 @@ export class SchemaApiService {
     };
   }
 
-  /**
-   * Get all schemas for the authenticated user
-   */
   public getAllSchemas(): Observable<SchemaListItem[]> {
     return this.http.get<SchemasListResponse>(this.endpointSchemas, this.obterHeadersAutorizacao())
       .pipe(
@@ -77,9 +73,6 @@ export class SchemaApiService {
       );
   }
 
-  /**
-   * Get schema by ID
-   */
   public getSchemaById(schemaId: string): Observable<SchemaDetailsResponse> {
     const url = `${this.endpointSchemas}/${schemaId}`;
     return this.http.get<SchemaByIdResponse>(url, this.obterHeadersAutorizacao())
@@ -89,9 +82,6 @@ export class SchemaApiService {
       );
   }
 
-  /**
-   * Create a new schema using POST /schemas endpoint
-   */
   public createSchema(title: string): Observable<{id: string, title: string}> {
     const requestBody = {
       title: title
@@ -111,9 +101,6 @@ export class SchemaApiService {
       );
   }
 
-  /**
-   * Save schema using PUT /schemas endpoint with multipart/form-data
-   */
   public saveSchema(schemaId: string, cells: any[], displayPicture?: Blob): Observable<{ success: boolean, message: string }> {
     const formData = new FormData();
     
@@ -134,9 +121,10 @@ export class SchemaApiService {
       );
   }
 
-  /**
-   * Convert canvas to blob for image upload
-   */
+  public deleteSchema(schemaId: string): Observable<{ success: boolean, message: string }> {
+    return this.http.delete<{ success: boolean, message: string }>(`${this.endpointSchemas}/${schemaId}`, this.obterHeadersAutorizacao())
+  }
+
   public canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {

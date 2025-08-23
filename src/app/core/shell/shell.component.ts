@@ -65,19 +65,12 @@ export class ShellComponent {
   }
 
   logout() {
-    // NÃO EXISTE A FUNCIONALIDADE DE LOGOUT
-    // this.authService.logout().subscribe({
-    //   next: () => this.processarSucesso(),
-    //   error: (err: Error) => this.processarFalha(err)
-    // })
+    this.authService.logout();
+    this.processarSucesso();
   }
 
   processarSucesso() {
     this.toastService.success(`Logout com sucesso!`, 'Sucesso');
     this.router.navigate(['/login']);
-  }
-
-  processarFalha(error: Error) {
-    this.toastService.error(error.message, 'Erro');
   }
 }

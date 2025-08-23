@@ -76,25 +76,20 @@ export class AuthService{
       );
   }
 
-  private obterHeadersAutorizacao() {
-    const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
+  // private obterHeadersAutorizacao() {
+  //   const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
 
-    return {
-      headers: new HttpHeaders({
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      }),
-    };
-  }
+  //   return {
+  //     headers: new HttpHeaders({
+  //       'Content-Type': 'application/json',
+  //       Authorization: `Bearer ${token}`,
+  //     }),
+  //   };
+  // }
 
   public logout(){
-    return this.http.post<any>(this.endpointLogout, {}, this.obterHeadersAutorizacao())
-      .pipe(
-        tap(() => {
-          this.localStorageService.limparDadosLocais();
-          this.notificarLogOut(); 
-        }),
-      );
+    this.localStorageService.limparDadosLocais();
+    this.notificarLogOut(); 
   }
 
   public logarUsuarioSalvo(){
