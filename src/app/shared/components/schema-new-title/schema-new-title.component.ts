@@ -21,14 +21,15 @@ import { MatInputModule } from '@angular/material/input';
 })
 
 export class SchemaNewTitleComponent {
-  title: string = '';
-  tituloCard: string = '';
-  tituloBtnConfirmar: string = '';
+  title: string;
+  tituloCard: string;
+  tituloBtnConfirmar: string;
   
   constructor(
     public dialogRef: MatDialogRef<SchemaNewTitleComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
   ) {
+    this.title = data?.title || '';
     this.tituloCard = data?.isUpdate ? 'Atualizar Nome do Schema' : 'Criar Novo Schema';
     this.tituloBtnConfirmar = data?.isUpdate ? 'Atualizar Schema' : 'Criar Schema';
   }

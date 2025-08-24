@@ -59,16 +59,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private refreshDashboardSchemas(schemaId: string) {
-    this.schemas = this.schemas.filter(s => s.id !== schemaId);
-  }
-
   private newTitleSchema(isUpdate: boolean, schema: SchemaListItem | null = null) {
     const dialogRef = this.dialog.open(SchemaNewTitleComponent, {
       width: '450px',
       disableClose: false,
       autoFocus: true,
-      data: { isUpdate: isUpdate }
+      data: { title: schema?.title, isUpdate: isUpdate }
     });
 
     dialogRef.afterClosed().subscribe(title => {
@@ -89,7 +85,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.schemaApiService.updateSchemaTitle(schemaId, newTitle).subscribe({
       next: () => {
         this.toastrService.success('Nome do schema atualizado com sucesso');
-        this.refreshDashboardSchemas(schemaId);
+        this.loadSchemas();
       },
       error: (error) => {
         this.toastrService.error(`Erro ao atualizar nome do schema`);
@@ -114,7 +110,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           console.error('Created schema does not have a valid ID:', newSchema);
           this.error = 'Schema criado, mas não foi possível obter o ID para navegação';
 
-          this.refreshDashboardSchemas(newSchema.id);
+          this.loadSchemas();
         }
       },
       error: (error) => {
@@ -223,7 +219,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.schemaApiService.deleteSchema(schema.id).subscribe({
         next: () => {
           this.toastrService.success('Schema excluído com sucesso');
-          this.refreshDashboardSchemas(schema.id);
+          this.schemas = this.schemas.filter(s => s.id !== schema.id);
           
         },
         error: (error) => {

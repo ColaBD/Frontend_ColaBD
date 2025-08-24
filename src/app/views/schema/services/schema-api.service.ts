@@ -82,9 +82,9 @@ export class SchemaApiService {
       );
   }
 
-  public updateSchemaTitle(schemaId: string, title: string): Observable<{ success: boolean, message: string }> {
+  public updateSchemaTitle(schemaId: string, new_title: string): Observable<{ success: boolean, message: string }> {
     const url = `${this.endpointSchemas}/title/${schemaId}`;
-    const body = { title: title };
+    const body = { new_title: new_title };
     
     return this.http.put<{ success: boolean, message: string }>(url, body, this.obterHeadersAutorizacao())
       .pipe(
