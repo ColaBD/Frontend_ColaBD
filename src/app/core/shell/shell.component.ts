@@ -3,7 +3,6 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
 import { Observable, map } from 'rxjs';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -24,7 +23,6 @@ import { MatExpansionModule } from "@angular/material/expansion";
     MatButtonModule,
     MatSidenavModule,
     MatListModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     FooterComponent,
     MatExpansionModule

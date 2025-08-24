@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { CodeEditorComponent } from "./component/code-editor/code-editor.component";
 import { TableEditorComponent } from './component/table-editor/table-editor.component';
 import { DiagramComponent } from './component/diagram/diagram.component';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
 import { SchemaService } from './services/schema.service';
@@ -16,14 +15,13 @@ import { SchemaBackendService } from './services/schema-backend.service';
   selector: 'app-schema',
   imports: [
     CommonModule,
-    HighlightModule, 
-    FormsModule, 
-    CodeEditorComponent, 
-    TableEditorComponent, 
+    HighlightModule,
+    FormsModule,
+    CodeEditorComponent,
+    TableEditorComponent,
     DiagramComponent,
-    MatIconModule, 
-    MatButtonModule
-  ],
+    MatButtonModule,
+],
   templateUrl: './schema.component.html',
   styleUrl: './schema.component.scss',
 })
@@ -193,9 +191,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Save the current schema with canvas image
-   */
   async saveSchema(): Promise<void> {
     if (!this.currentSchemaId) {
       console.error('No schema ID available for saving');

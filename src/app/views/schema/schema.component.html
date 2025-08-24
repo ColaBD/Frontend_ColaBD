@@ -23,15 +23,17 @@
     
     <!-- Save Success Message -->
     <div *ngIf="saveSuccess" class="alert alert-success alert-dismissible position-fixed" 
-         style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
-      <mat-icon class="me-2">check_circle</mat-icon>
+        style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+
+      <i class="bi bi-check-circle me-2"></i>
       Schema salvo com sucesso!
     </div>
     
     <!-- Save Error Message -->
     <div *ngIf="saveError" class="alert alert-danger alert-dismissible position-fixed" 
-         style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
-      <mat-icon class="me-2">error</mat-icon>
+        style="top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+
+      <i class="bi bi-x-circle me-2"></i>
       {{ saveError }}
       <button type="button" class="btn-close" (click)="saveError = null"></button>
     </div>

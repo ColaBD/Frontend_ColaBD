@@ -1,0 +1,36 @@
+<div class="create-schema-modal">
+    <h2 mat-dialog-title>{{tituloCard}}</h2>
+    
+    <mat-dialog-content>
+      <p>Digite um título para o seu schema de banco de dados:</p>
+      
+      <mat-form-field class="w-100">
+        <mat-label>Título do Schema</mat-label>
+        <input 
+          matInput 
+          [(ngModel)]="title" 
+          placeholder="ex: Banco de Dados E-commerce"
+          (keydown.enter)="onCreate()"
+          #titleInput
+          maxlength="100">
+        <mat-hint>{{title.length}}/100</mat-hint>
+      </mat-form-field>
+    </mat-dialog-content>
+    
+    <mat-dialog-actions align="end">
+      <button 
+        mat-button 
+        (click)="onCancel()"
+        type="button">
+        Cancelar
+      </button>
+      <button 
+        mat-raised-button 
+        color="primary"
+        (click)="onCreate()"
+        [disabled]="!title.trim()"
+        type="button">
+        {{tituloBtnConfirmar}}
+      </button>
+    </mat-dialog-actions>
+</div>

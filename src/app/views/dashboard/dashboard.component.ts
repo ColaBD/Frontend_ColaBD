@@ -8,7 +8,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { SchemaApiService } from '../schema/services/schema-api.service';
 import { SchemaListItem } from '../schema/models/schema-api.models';
-import { CreateSchemaModalComponent } from '../../shared/components/create-schema-modal/create-schema-modal.component';
+import { SchemaNewTitleComponent } from '../../shared/components/schema-new-title/schema-new-title.component';
+import { ToastrService } from 'ngx-toastr';
+import { LocalStorageService } from '../../core/auth/services/local-storage.service';
+import { jwtDecode } from 'jwt-decode';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,8 +20,8 @@ import { CreateSchemaModalComponent } from '../../shared/components/create-schem
     RouterModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatCardModule
-  ],
+    MatCardModule,
+],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
@@ -27,22 +30,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isLoading = false;
   error: string | null = null;
   activeMenuId: string | null = null;
+  userName: string = ''; 
 
   constructor(
     private footerService: FooterService,
     private schemaApiService: SchemaApiService,
     private router: Router,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private toastrService: ToastrService,
+    private localStorageService: LocalStorageService
   ) {}
-  
-  ngOnInit() {
-    this.footerService.setFooterVisibility(false);
-    this.loadSchemas();
-  }
-
-  ngOnDestroy() {
-    this.footerService.setFooterVisibility(true);
-  }
 
   private loadSchemas() {
     this.isLoading = true;
@@ -62,29 +59,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Make loadSchemas public so it can be called from template
-  public retryLoadSchemas() {
-    this.loadSchemas();
+  private refreshDashboardSchemas(schemaId: string) {
+    this.schemas = this.schemas.filter(s => s.id !== schemaId);
   }
 
-  onSchemaClick(schema: SchemaListItem) {
-    // Navigate to schema editor with the specific schema ID
-    console.log('Navigating to schema:', schema.id);
-    this.router.navigate(['/schema', schema.id]);
-  }
-
-  onCreateNewSchema() {
-    // Open modal to get schema title
-    const dialogRef = this.dialog.open(CreateSchemaModalComponent, {
+  private newTitleSchema(isUpdate: boolean, schema: SchemaListItem | null = null) {
+    const dialogRef = this.dialog.open(SchemaNewTitleComponent, {
       width: '450px',
       disableClose: false,
-      autoFocus: true
+      autoFocus: true,
+      data: { isUpdate: isUpdate }
     });
 
     dialogRef.afterClosed().subscribe(title => {
-      console.log('Modal closed with title:', title);
-      if (title) {
-        this.createNewSchema(title);
+      if(!title) {
+        return;
+      }
+
+      if(isUpdate && schema) {
+        this.updateSchemaName(schema.id, title);
+        return;
+      }
+
+      this.createNewSchema(title);
+    });
+  }
+
+  private updateSchemaName(schemaId: string, newTitle: string) {
+    this.schemaApiService.updateSchemaTitle(schemaId, newTitle).subscribe({
+      next: () => {
+        this.toastrService.success('Nome do schema atualizado com sucesso');
+        this.refreshDashboardSchemas(schemaId);
+      },
+      error: (error) => {
+        this.toastrService.error(`Erro ao atualizar nome do schema`);
+        console.error('Error updating schema name:', error);
       }
     });
   }
@@ -104,9 +113,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         } else {
           console.error('Created schema does not have a valid ID:', newSchema);
           this.error = 'Schema criado, mas não foi possível obter o ID para navegação';
-          
-          // Fallback: reload the dashboard to show the new schema
-          this.loadSchemas();
+
+          this.refreshDashboardSchemas(newSchema.id);
         }
       },
       error: (error) => {
@@ -115,6 +123,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
         console.error('Error creating schema:', error);
       }
     });
+  }
+
+  private closeMenuOnOutsideClick() {
+    this.activeMenuId = null;
+  }
+  
+  ngOnInit() {
+    const tokenData = this.localStorageService.obterDadosLocaisSalvos();
+    if (tokenData) {
+      const decoded: any = jwtDecode(tokenData.access_token);
+      this.userName = decoded['email'].split('@')[0] || 'Usuário';
+    }
+
+    this.footerService.setFooterVisibility(false);
+    this.loadSchemas();
+  }
+
+  ngOnDestroy() {
+    this.footerService.setFooterVisibility(true);
+  }
+
+  retryLoadSchemas() {
+    this.loadSchemas();
+  }
+
+  onSchemaClick(schema: SchemaListItem) {
+    this.router.navigate(['/schema', schema.id]);
+  }
+
+  onUpdateSchemaName(schema: SchemaListItem){
+    this.newTitleSchema(true, schema);
+  }
+
+  onCreateNewSchema() {
+    this.newTitleSchema(false);
   }
 
   formatDate(dateString: string | null): string {
@@ -140,7 +183,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getSchemaImageUrl(schema: SchemaListItem): string {
-    // Priority order: signed_image_url, display_picture, fallback to placeholder
     if (schema.signed_image_url) {
       return schema.signed_image_url;
     }
@@ -168,22 +210,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  private closeMenuOnOutsideClick() {
-    this.activeMenuId = null;
-  }
-
   duplicateSchema(schema: SchemaListItem) {
     this.activeMenuId = null;
     console.log('Duplicating schema:', schema);
-    // TODO: Implement duplicate functionality
     alert('Funcionalidade de duplicar em desenvolvimento');
   }
 
   deleteSchema(schema: SchemaListItem) {
     this.activeMenuId = null;
+
     if (confirm(`Tem certeza que deseja excluir o schema "${schema.title}"?`)) {
-      console.log('Deleting schema:', schema);
-      this.schemaApiService.deleteSchema(schema.id).subscribe({});
+      this.schemaApiService.deleteSchema(schema.id).subscribe({
+        next: () => {
+          this.toastrService.success('Schema excluído com sucesso');
+          this.refreshDashboardSchemas(schema.id);
+          
+        },
+        error: (error) => {
+          console.error('Error deleting schema:', error);
+          this.toastrService.error(`Erro ao excluir schema`);
+        }
+      });
     }
   }
 }

@@ -7,7 +7,6 @@ import { MatInputModule } from '@angular/material/input';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Observable } from 'rxjs';
-import { LoadingService } from '../../core/spinner/loading.service';
 import { AuthService } from '../../core/auth/services/auth.service';
 
 @Component({

@@ -82,6 +82,16 @@ export class SchemaApiService {
       );
   }
 
+  public updateSchemaTitle(schemaId: string, title: string): Observable<{ success: boolean, message: string }> {
+    const url = `${this.endpointSchemas}/title/${schemaId}`;
+    const body = { title: title };
+    
+    return this.http.put<{ success: boolean, message: string }>(url, body, this.obterHeadersAutorizacao())
+      .pipe(
+        catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
+      );
+  }
+
   public createSchema(title: string): Observable<{id: string, title: string}> {
     const requestBody = {
       title: title
