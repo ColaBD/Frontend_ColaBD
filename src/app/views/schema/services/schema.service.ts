@@ -238,10 +238,7 @@ export class SchemaService {
   }
   
   // JointJS Data Import/Export Methods
-  
-  /**
-   * Load schema from JointJS graph data (typically from backend)
-   */
+
   loadFromJointJSData(jointjsData: JointJSGraph): void {
     try {
       // Parse the JointJS data
@@ -265,16 +262,12 @@ export class SchemaService {
       this.tables.next(tables);
       this.relationships.next(relationships);
       
-      console.log('Schema loaded from JointJS data:', { tables: tables.length, relationships: relationships.length });
     } catch (error) {
       console.error('Failed to load schema from JointJS data:', error);
       throw error;
     }
   }
   
-  /**
-   * Export current schema to JointJS graph format (for backend storage)
-   */
   exportToJointJSData(): JointJSGraph {
     try {
       const currentTables = this.tables.getValue();
@@ -290,9 +283,6 @@ export class SchemaService {
     }
   }
   
-  /**
-   * Clear all tables and relationships
-   */
   clearSchema(): void {
     this.tablesMap.clear();
     this.relationshipsMap.clear();
@@ -300,9 +290,6 @@ export class SchemaService {
     this.relationships.next([]);
   }
   
-  /**
-   * Load schema from a JSON string (helper method)
-   */
   loadFromJSONString(jsonString: string): void {
     try {
       const jointjsData: JointJSGraph = JSON.parse(jsonString);
@@ -312,10 +299,7 @@ export class SchemaService {
       throw new Error('Invalid JSON format');
     }
   }
-  
-  /**
-   * Export schema to JSON string (helper method)
-   */
+
   exportToJSONString(): string {
     try {
       const jointjsData = this.exportToJointJSData();
@@ -327,10 +311,6 @@ export class SchemaService {
   }
 
   // Backend Integration Methods
-  
-  /**
-   * Load schema from backend
-   */
   loadSchemaFromBackend(schemaId?: string): Observable<void> {
     return new Observable(observer => {
       this.backendService.loadSchema(schemaId).subscribe({
@@ -347,18 +327,12 @@ export class SchemaService {
       });
     });
   }
-  
-  /**
-   * Save schema to backend with optional canvas image
-   */
+
   saveSchemaToBackend(schemaId?: string, canvas?: HTMLCanvasElement): Observable<{ id: string, message: string }> {
     const jointjsData = this.exportToJointJSData();
     return this.backendService.saveSchema(jointjsData, schemaId, canvas);
   }
-  
-  /**
-   * Load mock schema for development/testing
-   */
+
   loadMockSchema(): Observable<void> {
     return new Observable(observer => {
       this.backendService.loadMockSchema().subscribe({

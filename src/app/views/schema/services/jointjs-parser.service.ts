@@ -17,9 +17,6 @@ export class JointJSParserService {
 
   constructor() { }
 
-  /**
-   * Parse JointJS graph data into our internal schema format
-   */
   parseJointJSData(jointjsData: JointJSGraph): ParsedSchemaData {
     const tables: ParsedTableData[] = [];
     const relationships: ParsedRelationshipData[] = [];
@@ -59,13 +56,9 @@ export class JointJSParserService {
     return { tables, relationships };
   }
 
-  /**
-   * Convert our internal schema format back to JointJS format
-   */
   convertToJointJSFormat(tables: TableDefinition[], relationships: Relationship[]): JointJSGraph {
     const cells: JointJSCell[] = [];
 
-    // Convert tables to JointJS format
     tables.forEach(table => {
       const tableCell = this.convertTableToJointJS(table);
       if (tableCell) {

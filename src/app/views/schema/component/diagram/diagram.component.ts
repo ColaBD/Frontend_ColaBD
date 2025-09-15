@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as joint from 'jointjs';
@@ -6,7 +6,8 @@ import * as $ from 'jquery';
 import html2canvas from 'html2canvas';
 import { SchemaService, TableDefinition, Relationship, RelationshipType } from '../../services/schema.service';
 import { JointJSGraph } from '../../services/jointjs-data.interface';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
+import { SchemaApiWebsocketService } from '../../services/colaborative/schema-api-websocket.service';
 
 // Make jQuery available to JointJS
 (window as any).$ = (window as any).jQuery = $;
@@ -27,44 +28,55 @@ declare module 'jointjs' {
   templateUrl: './diagram.component.html',
   styleUrl: './diagram.component.scss'
 })
-export class DiagramComponent implements AfterViewInit, OnDestroy {
+export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('diagram') diagramElement!: ElementRef;
   @ViewChild('relationshipDropdown') relationshipDropdown!: ElementRef;
   @ViewChild('relationshipSelect') relationshipSelect!: ElementRef<HTMLSelectElement>;
+  precisaSalvar: Subject<boolean> = new Subject<boolean>();
   
+  private readonly minScale: number = 0.4;
+  private readonly scaleStep: number = 0.1;
+  private readonly wheelThrottleMs: number = 16; // ~60fps
+  private readonly maxScale: number = 2;
+  private readonly wheelZoomSensitivity: number = 0.1;
   private graph!: joint.dia.Graph;
   private paper!: joint.dia.Paper;
   private currentScale: number = 1;
-  private readonly minScale: number = 0.4;
-  private readonly maxScale: number = 2;
-  private readonly scaleStep: number = 0.1;
-  private readonly wheelZoomSensitivity: number = 0.1;
   private tableElementsMap = new Map<string, joint.dia.Element>();
   private relationshipLinksMap = new Map<string, joint.dia.Link>();
   private subscription: Subscription = new Subscription();
-  isLinkingMode: boolean = false;
   private sourceElement: joint.dia.Element | null = null;
   private resizeObserver?: ResizeObserver;
   private resizeHandler?: () => void;
   private wheelHandler?: (event: WheelEvent) => void;
   private lastWheelTime: number = 0;
-  private readonly wheelThrottleMs: number = 16; // ~60fps
   private resizeTimeout: any;
   private windowResizeTimeout: any;
+  isLinkingMode: boolean = false;
 
   // Relationship dropdown properties
   showRelationshipDropdown: boolean = false;
   private selectedLink: joint.dia.Link | null = null;
   private selectedRelationshipId: string | null = null;
 
-  constructor(private schemaService: SchemaService) { }
+  constructor(private schemaService: SchemaService, private socketService: SchemaApiWebsocketService) { 
+    
+  }
+
+  ngOnInit(): void {
+    this.subscription.add(
+      this.socketService.schemaAtualizadoSubject.subscribe((jointValue) => {
+        this.loadFromJointJSData(jointValue.table_info)
+      })
+    );
+  }
 
   ngAfterViewInit(): void {
-    // Use setTimeout to ensure DOM is fully rendered before initializing JointJS
     setTimeout(() => {
       this.initializeJointJs();
       this.subscribeToTableChanges();
       this.subscribeToRelationshipChanges();
+      this.setupGraphChangeListener();
     }, 0);
   }
 
@@ -104,6 +116,31 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     if (this.graph) {
       this.graph.clear();
     }
+  }
+
+  private setupGraphChangeListener(): void {
+    this.graph.on('add', (cell) => {
+      this.precisaSalvar.next(true);
+      setTimeout(() => {
+        this.precisaSalvar.next(false);
+      }, 3000);
+    });
+  
+    this.graph.on('remove', (cell) => {
+      this.precisaSalvar.next(true);
+      setTimeout(() => {
+        this.precisaSalvar.next(false);
+      }, 3000);
+    });
+
+    this.graph.on('change', (cell: joint.dia.Cell, opt: any) => {
+      this.precisaSalvar.next(true);
+      setTimeout(() => {
+        this.precisaSalvar.next(false);
+      }, 3000);
+    });
+
+    
   }
 
   private initializeJointJs(): void {
@@ -162,7 +199,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       // Set up event handlers
       this.setupEventHandlers();
 
-      console.log('JointJS initialized successfully');
     } catch (error) {
       console.error('Failed to initialize JointJS:', error);
       // Retry after a short delay
@@ -184,7 +220,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       if (parentWidth > 0 && parentHeight > 0) {
         try {
           this.paper.setDimensions(parentWidth, parentHeight);
-          console.log(`Canvas resized to: ${parentWidth}x${parentHeight}`);
         } catch (error) {
           console.error('Error resizing paper:', error);
         }
@@ -1171,31 +1206,19 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
 
   // JointJS Data Import Methods
   
-  /**
-   * Load schema from JointJS graph data and rebuild the diagram
-   */
   loadFromJointJSData(jointjsData: JointJSGraph): void {
     try {
-      // Load data into the schema service
       this.schemaService.loadFromJointJSData(jointjsData);
-      
-      // The diagram will be automatically updated through the subscriptions
-      // to schemaService.getTables() and schemaService.getRelationships()
-      
-      // Fit content to show all loaded elements
+
       setTimeout(() => {
         this.fitContent();
       }, 100);
-      
-      console.log('Diagram loaded from JointJS data');
+
     } catch (error) {
       console.error('Failed to load diagram from JointJS data:', error);
     }
   }
   
-  /**
-   * Load schema from JSON string
-   */
   loadFromJSONString(jsonString: string): void {
     try {
       const jointjsData: JointJSGraph = JSON.parse(jsonString);
@@ -1205,31 +1228,19 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       throw new Error('Invalid JSON format');
     }
   }
-  
-  /**
-   * Export current diagram to JointJS format
-   */
+
   exportToJointJSData(): JointJSGraph {
     return this.schemaService.exportToJointJSData();
   }
-  
-  /**
-   * Export current diagram to JSON string
-   */
+
   exportToJSONString(): string {
     return this.schemaService.exportToJSONString();
   }
-  
-  /**
-   * Clear the entire diagram
-   */
+
   clearDiagram(): void {
     this.schemaService.clearSchema();
   }
-  
-  /**
-   * Load sample data for testing
-   */
+
   loadSampleData(): void {
     const sampleData: JointJSGraph = {
       cells: [
@@ -1287,13 +1298,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     this.loadFromJointJSData(sampleData);
   }
 
-  /**
-   * Force reinitialize the diagram - useful for debugging rendering issues
-   */
   reinitializeDiagram(): void {
     console.log('Force reinitializing diagram...');
-    
-    // Clean up existing instances
+
     if (this.paper) {
       this.paper.remove();
     }
@@ -1301,7 +1308,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
       this.graph.clear();
     }
     
-    // Clear maps
     this.tableElementsMap.clear();
     this.relationshipLinksMap.clear();
     
@@ -1313,9 +1319,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     }, 100);
   }
 
-  /**
-   * Force resize the canvas to fit its container
-   */
   forceResize(): void {
     if (!this.ensureJointJSInitialized()) return;
     
@@ -1342,9 +1345,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  /**
-   * Debug method to check canvas dimensions and state
-   */
   debugCanvasState(): void {
     console.log('=== Canvas Debug Info ===');
     console.log('JointJS initialized:', this.isJointJSInitialized());
@@ -1392,9 +1392,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     return true;
   }
 
-  /**
-   * Take a screenshot of the canvas using browser screenshot API
-   */
   async takeScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
     if (!this.diagramElement?.nativeElement) {
       console.error('Diagram element not available');
@@ -1452,7 +1449,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
   }
 
   private async captureWithCanvas(element: HTMLElement, filename: string): Promise<void> {
-    // Create a canvas with the same dimensions as the element
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -1515,12 +1511,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
-  /**
-   * Take a clean screenshot by directly manipulating the SVG
-   */
-  /**
-   * Get canvas element for schema saving (without downloading)
-   */
   async getCanvasForSave(): Promise<HTMLCanvasElement | null> {
     if (!this.diagramElement?.nativeElement) {
       console.error('Diagram element not available');

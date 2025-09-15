@@ -46,7 +46,12 @@
         <div class="nav-item" [class.active]="activeEditor === 'code'" (click)="setActiveEditor('code')">
           <span>SQL Schema</span>
         </div>
-        <div class="nav-actions ms-auto">
+        <i 
+          class="ms-auto text-light me-4" 
+          [class]="isSavingSchemaSocket ? 'spinner-border spinner-border-sm' : 'bi-cloud-check'"
+          [title]="isSavingSchemaSocket ? 'Salvando...' : 'Tudo salvo!'"
+        ></i>
+        <!-- <div class="nav-actions ms-auto">
           <button 
             class="btn btn-primary btn-sm"
             [disabled]="isSavingSchema"
@@ -55,7 +60,7 @@
             <span *ngIf="isSavingSchema" class="spinner-border spinner-border-sm me-1" role="status"></span>
             {{ isSavingSchema ? 'Salvando...' : 'Salvar' }}
           </button>
-        </div>
+        </div> -->
       </div>
       <div class="editor-content">
         <div *ngIf="activeEditor === 'table'" class="table-editor-view">
@@ -71,6 +76,7 @@
          [class.resizing]="isResizing">
       <div class="resize-line"></div>
     </div>
+
     <div class="diagram-container" [style.width.px]="diagramWidth">
       <app-diagram></app-diagram>
     </div>
