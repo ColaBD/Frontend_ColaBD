@@ -11,7 +11,6 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
 import { SchemaService, TableDefinition, TableColumn, TableIndex } from '../../services/schema.service';
 import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Observable } from 'rxjs';
 
 
 @Component({
@@ -46,12 +45,17 @@ export class TableEditorComponent implements OnInit {
 
   ngOnInit(): void {
     this.schemaService.getTables().subscribe(tables => {
-      this.tables = tables;
+      tables.forEach(newTable => {
+        const index = this.tables.findIndex(t => t.id == newTable.id);
+    
+        if (index != -1) {
+          this.tables[index] = newTable;
+        } 
+        else {
+          this.tables.push(newTable);
+        }
+      });
     });
-
-    if (this.tables.length === 0) {
-      this.addTable();
-    }
   }
 
   addTable(): void {
@@ -210,7 +214,6 @@ export class TableEditorComponent implements OnInit {
     try {
       this.schemaService.loadFromJointJSData(jointjsData);
       // Tables will be automatically updated through the subscription
-      console.log('Table editor loaded from JointJS data');
     } catch (error) {
       console.error('Failed to load table editor from JointJS data:', error);
     }
@@ -297,8 +300,6 @@ export class TableEditorComponent implements OnInit {
         
         this.schemaService.updateTable(sourceTable);
         this.schemaService.updateTable(targetTable);
-        
-        console.log(`Column moved from table ${sourceTable.name} to table ${targetTable.name}`);
       }
     }
     

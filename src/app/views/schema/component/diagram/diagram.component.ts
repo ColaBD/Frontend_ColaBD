@@ -5,9 +5,11 @@ import * as joint from 'jointjs';
 import * as $ from 'jquery';
 import html2canvas from 'html2canvas';
 import { SchemaService, TableDefinition, Relationship, RelationshipType } from '../../services/schema.service';
-import { JointJSGraph } from '../../services/jointjs-data.interface';
+import { JointJSCell, JointJSGraph } from '../../services/jointjs-data.interface';
 import { Subject, Subscription } from 'rxjs';
 import { SchemaApiWebsocketService } from '../../services/colaborative/schema-api-websocket.service';
+import { ActivatedRoute } from '@angular/router';
+import { BaseTable, CreateTable, DeleteTable, MoveTable, UpdateTable, TableAttrs } from '../../models/schema-colab.models';
 
 // Make jQuery available to JointJS
 (window as any).$ = (window as any).jQuery = $;
@@ -33,6 +35,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('relationshipDropdown') relationshipDropdown!: ElementRef;
   @ViewChild('relationshipSelect') relationshipSelect!: ElementRef<HTMLSelectElement>;
   precisaSalvar: Subject<boolean> = new Subject<boolean>();
+  dadosRecebidos: boolean = false;
+  indexTablesLoaded = 1; 
+  qtTablesLoaded = 0;
   
   private readonly minScale: number = 0.4;
   private readonly scaleStep: number = 0.1;
@@ -59,14 +64,20 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private selectedLink: joint.dia.Link | null = null;
   private selectedRelationshipId: string | null = null;
 
-  constructor(private schemaService: SchemaService, private socketService: SchemaApiWebsocketService) { 
-    
-  }
+  constructor(
+    private schemaService: SchemaService, 
+    private socketService: SchemaApiWebsocketService,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit(): void {
+    this.socketService.connectWS(this.route.snapshot.paramMap.get("id"));
+
     this.subscription.add(
-      this.socketService.schemaAtualizadoSubject.subscribe((jointValue) => {
-        this.loadFromJointJSData(jointValue.table_info)
+      this.socketService.schemaAtualizadoSubject.subscribe((received_ws_data) => {
+        this.dadosRecebidos = true;
+        console.log("Dados recebidos via WebSockettttttttt:   ", JSON.stringify(received_ws_data));
+        this.loadJointJSFromWS(received_ws_data)
       })
     );
   }
@@ -82,7 +93,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
-    
+    this.dadosRecebidos = false;
+    this.indexTablesLoaded = 1; 
+
     // Clear any pending timeouts
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
@@ -118,29 +131,225 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  private setupGraphChangeListener(): void {
-    this.graph.on('add', (cell) => {
-      this.precisaSalvar.next(true);
-      setTimeout(() => {
-        this.precisaSalvar.next(false);
-      }, 3000);
+  private tableAction(cells: JointJSCell[] ,receivedData: BaseTable) {
+    if (receivedData instanceof CreateTable) {
+      console.log("CreateTable recebido");
+      cells = this.manipulateCreateTable(cells, receivedData);
+    } 
+    else if (receivedData instanceof DeleteTable) {
+      console.log("DeleteTable recebido");
+      cells = this.manipulateDeleteTable(cells, receivedData);
+    } 
+    else if (receivedData instanceof UpdateTable) {
+      console.log("UpdateTable recebido");
+      cells = this.manipulateUpdateTable(cells, receivedData);
+    } 
+    else if (receivedData instanceof MoveTable) {
+      console.log("MoveTable recebido");
+      cells = this.manipulateMoveTable(cells, receivedData);
+    }
+
+    return cells;
+  }
+
+  private manipulateCreateTable(cells: JointJSCell[] ,receivedData: CreateTable): JointJSCell[] {
+    const jointJsCell: JointJSCell = {
+      id: receivedData.id,
+      type: receivedData.type,
+      position: receivedData.position,
+      size: receivedData.size,
+      attrs: {...receivedData.attrs},
+    }
+    cells.push(jointJsCell); // copia os dados da classe para objeto literal
+
+    return cells;
+  }
+
+  private manipulateDeleteTable(cells: JointJSCell[] ,receivedData: DeleteTable): JointJSCell[] {
+    const index = cells.findIndex(item => item.id.includes(receivedData.id));
+
+    if (index !== -1) {
+      cells.splice(index, 1);
+    }
+
+    return cells;
+  }
+
+  private manipulateUpdateTable(cells: JointJSCell[] ,receivedData: UpdateTable): JointJSCell[] {
+    const item = cells.find(cell => cell.id.includes(receivedData.id));
+    if (item) {
+      item.attrs = {...receivedData.attrs};
+    }
+
+    return cells;
+  }
+
+  private manipulateMoveTable(cells: JointJSCell[] ,receivedData: MoveTable): JointJSCell[] {
+    const item = cells.find(cell => cell.id.includes(receivedData.id));
+    if (item) {
+      if (!item.position) {
+        item.position = { x: 0, y: 0 };
+      }
+
+      item.position.x = receivedData.position.x;
+      item.position.y = receivedData.position.y;
+    }
+
+    return cells;
+  }
+
+  private loadJointJSFromWS(received_ws_data: BaseTable): void {
+    try {
+      const current_cells = this.schemaService.exportToJointJSData().cells;
+
+      const updated_cells = this.tableAction(current_cells, received_ws_data);
+      
+      const graph: JointJSGraph = { cells: updated_cells };
+
+      console.log("Graph atualizado: ", graph);
+
+      this.schemaService.loadFromJointJSData(graph);
+
+      this.fitContent();
+      this.dadosRecebidos = false;
+
+      // const cells = this.schemaService.exportToJointJSData().cells;
+      // const updatedCells = this.tableAction(cells, received_ws_data);
+
+      // this.graph.resetCells(updatedCells.map(c => new joint.shapes.standard.Rectangle(c)));
+  
+      // this.schemaService.loadFromJointJSData({ cells: updatedCells });
+
+      // this.fitContent();
+      // this.dadosRecebidos = false;
+
+    } catch (error) {
+      console.error('Failed to load diagram from JointJS data:', error);
+    }
+  }
+
+  private sendWSRequest(data: BaseTable, channel: string) {
+    this.socketService.atualizacaoSchema(data, channel);
+
+    setTimeout(() => { 
+      this.precisaSalvar.next(false);
+    }, 3000);
+  }
+
+  private get_table_by_id(table_id: string){
+    return this.schemaService.exportToJointJSData().cells.filter((tabela) => tabela.id.includes(table_id))[0];
+  }
+
+  private addCellAndSend(cell: joint.dia.Cell){
+    this.precisaSalvar.next(true);
+
+    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+    const new_table = this.get_table_by_id(table_id);
+
+    if(new_table == undefined){
+      return;          
+    }
+
+    const dataWS: CreateTable = {
+      id: table_id,
+      attrs: {...new_table.attrs},
+      position: {
+        x: new_table.position?.x || 100,
+        y: new_table.position?.y || 100
+      },
+      size: { 
+        width: new_table.size?.width || 200 , 
+        height: new_table.size?.height || 146 
+      },
+      type: new_table.type,
+    }
+
+    this.sendWSRequest(dataWS, "create_table")
+  }
+
+  private removeCellAndSend(cell: joint.dia.Cell){
+    this.precisaSalvar.next(true);
+
+    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+
+    const dataWS: DeleteTable = {
+      id: table_id
+    }
+
+    console.log('Removidooooooo               ', JSON.stringify(dataWS))
+
+    this.sendWSRequest(dataWS, "delete_table")
+  }
+
+  private updateCellAndSend(cell: joint.dia.Cell){
+    this.precisaSalvar.next(true);
+
+    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+    const new_attrs = this.get_table_by_id(table_id).attrs;
+
+    const dataWS: UpdateTable = {
+      id: table_id,
+      attrs: {...new_attrs}
+    }
+
+    console.log('Atualizadoooooo               ', JSON.stringify(dataWS))
+
+    this.sendWSRequest(dataWS, "update_table_atributes")
+  }
+
+  private moveCellAndSend(cell: joint.dia.Cell){
+    this.precisaSalvar.next(true);
+
+    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+    const pos_x = cell.position().x;
+    const pos_y = cell.position().y;
+
+    const dataWS: MoveTable = {
+      id: table_id,
+      position: {
+        x: pos_x,
+        y: pos_y
+      }
+    }
+
+    console.log('Movidooooooooooo               ', JSON.stringify(dataWS))
+
+    this.sendWSRequest(dataWS, "move_table")
+  }
+
+  setQtTablesReceived(qtTablesLoaded: number){
+    this.qtTablesLoaded = qtTablesLoaded;
+  }
+
+  private setupGraphChangeListener() {
+    this.graph.on('add', (cell: joint.dia.Cell) => {
+      if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
+        this.addCellAndSend(cell);
+      }
+
+      this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
     });
   
-    this.graph.on('remove', (cell) => {
-      this.precisaSalvar.next(true);
-      setTimeout(() => {
-        this.precisaSalvar.next(false);
-      }, 3000);
+    this.graph.on('remove', (cell: joint.dia.Cell) => {
+      if(!this.dadosRecebidos){
+        // pode usar a mesma ação para adicionar e remover links
+        this.removeCellAndSend(cell);
+      }
     });
 
-    this.graph.on('change', (cell: joint.dia.Cell, opt: any) => {
-      this.precisaSalvar.next(true);
-      setTimeout(() => {
-        this.precisaSalvar.next(false);
-      }, 3000);
+    this.graph.on('change:attrs', (cell: joint.dia.Cell) => {
+      if(!this.dadosRecebidos){
+        this.updateCellAndSend(cell);
+      }
     });
 
-    
+    this.graph.on('change:position', (cell: joint.dia.Cell) => {
+      if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
+        this.moveCellAndSend(cell);
+      }
+      
+      this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
+    });
   }
 
   private initializeJointJs(): void {
@@ -311,13 +520,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
             const sourceTable = this.schemaService.getTablesSnapshot().find(t => t.id === sourceId);
             const targetTable = this.schemaService.getTablesSnapshot().find(t => t.id === targetId);
             
-            console.log('Creating relationship:', { sourceId, targetId, sourceTable, targetTable });
-            
             if (sourceTable && targetTable) {
               // Find primary key in source table
               const primaryKeyColumn = sourceTable.columns.find(col => col.isPrimaryKey);
-              
-              console.log('Primary key found:', primaryKeyColumn);
               
               if (primaryKeyColumn) {
                 // Create foreign key column name
@@ -325,8 +530,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                 
                 // Check if foreign key column already exists
                 const existingForeignKey = targetTable.columns.find(col => col.name === foreignKeyName);
-                
-                console.log('Foreign key name:', foreignKeyName, 'Existing FK:', existingForeignKey);
                 
                 if (!existingForeignKey) {
                   // Add foreign key column to target table
@@ -339,15 +542,11 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                     helpText: `FK para ${sourceTable.name}.${primaryKeyColumn.name}`
                   };
                   
-                  console.log('Creating foreign key column:', foreignKeyColumn);
-                  
                   // Update target table with new foreign key column
                   const updatedTargetTable = {
                     ...targetTable,
                     columns: [...targetTable.columns, foreignKeyColumn]
                   };
-                  
-                  console.log('Updated target table:', updatedTargetTable);
                   
                   this.schemaService.updateTable(updatedTargetTable);
                 }
@@ -361,12 +560,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                   targetColumnId: existingForeignKey ? existingForeignKey.name : foreignKeyName,
                   type: RelationshipType.OneToMany
                 };
-                
-                console.log('Creating relationship:', newRelationship);
+
                 this.schemaService.addRelationship(newRelationship);
               } else {
-                console.log('No primary key found in source table, creating basic relationship');
-                // No primary key found, create relationship without column references
                 this.schemaService.addRelationship({
                   id: '',
                   sourceTableId: sourceId,
@@ -550,7 +746,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       if (this.tableElementsMap.has(table.id)) {
         // Update existing table
         this.updateTableElement(table);
-      } else {
+      } 
+      else {
         // Add new table
         this.addTableElement(table);
       }
@@ -587,6 +784,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private addTableElement(table: TableDefinition): void {
     const tableElement = this.createTableElement(table);
+    // tableElement.set('cols', table.columns);
+
     this.graph.addCell(tableElement);
     this.tableElementsMap.set(table.id, tableElement);
     
@@ -1040,7 +1239,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   // Public methods exposed to the template
-  
+
   toggleLinkingMode(): void {
     // If already in linking mode, cancel it
     if (this.isLinkingMode && this.sourceElement) {
@@ -1209,6 +1408,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   loadFromJointJSData(jointjsData: JointJSGraph): void {
     try {
       this.schemaService.loadFromJointJSData(jointjsData);
+      this.dadosRecebidos = false;
 
       setTimeout(() => {
         this.fitContent();

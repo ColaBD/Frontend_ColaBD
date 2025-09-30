@@ -62,15 +62,15 @@ export class SchemaService {
     private jointJSParser: JointJSParserService,
     private backendService: SchemaBackendService
   ) {
-    // Initialize with default table for testing
-    this.addTable({
-      id: this.generateId(),
-      name: 'Tabela 1',
-      columns: [
-        { name: 'ID', type: 'INT', isPrimaryKey: true, isNotNull: true, isUnique: true }
-      ],
-      position: { x: 100, y: 100 }
-    });
+    // // Initialize with default table for testing
+    // this.addTable({
+    //   id: this.generateId(),
+    //   name: 'Tabela 1',
+    //   columns: [
+    //     { name: 'ID', type: 'INT', isPrimaryKey: true, isNotNull: true, isUnique: true }
+    //   ],
+    //   position: { x: 100, y: 100 }
+    // });
   }
   
   // Get all tables as observable
@@ -275,7 +275,6 @@ export class SchemaService {
       
       const jointjsData = this.jointJSParser.convertToJointJSFormat(currentTables, currentRelationships);
       
-      console.log('Schema exported to JointJS format:', jointjsData);
       return jointjsData;
     } catch (error) {
       console.error('Failed to export schema to JointJS format:', error);

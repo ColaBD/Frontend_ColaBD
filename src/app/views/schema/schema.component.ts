@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { HighlightModule } from 'ngx-highlightjs';
 import { FormsModule } from '@angular/forms';
@@ -10,10 +10,7 @@ import { FooterService } from '../../core/footer/services/footer.service';
 import { CodeEditorComponent } from "./component/code-editor/code-editor.component";
 import { TableEditorComponent } from './component/table-editor/table-editor.component';
 import { DiagramComponent } from './component/diagram/diagram.component';
-import { SchemaService } from './services/schema.service';
 import { SchemaBackendService } from './services/schema-backend.service';
-import { SchemaApiWebsocketService } from './services/colaborative/schema-api-websocket.service';
-import { InfoSchemaColab } from './models/schema-colab.models'
 
 @Component({
   selector: 'app-schema',
@@ -33,6 +30,7 @@ export class SchemaComponent implements OnInit, OnDestroy {
   @ViewChild(DiagramComponent) diagramComponent!: DiagramComponent;
   
   activeEditor: 'table' | 'code' = 'table';
+  comp_diagram_incializado = false;
   
   // Resizable panel properties
   editorWidth: number = 600; // Default width
@@ -64,16 +62,13 @@ export class SchemaComponent implements OnInit, OnDestroy {
   constructor(
     private footerService: FooterService,
     private route: ActivatedRoute,
-    private schemaService: SchemaService,
     private schemaBackendService: SchemaBackendService,
-    private socketService: SchemaApiWebsocketService
   ) { }
 
   ngOnInit() {
     this.footerService.setFooterVisibility(false);
     this.initializeResizablePanels();
     this.loadSchemaFromRoute();
-    this.socketService.onSchemaAtualizado();
   }
 
   ngAfterViewInit() {
@@ -81,13 +76,10 @@ export class SchemaComponent implements OnInit, OnDestroy {
       this.subs.add(
         this.diagramComponent.precisaSalvar.subscribe(async (precisaSalvar) => {
           this.isSavingSchemaSocket = precisaSalvar;
-
-          if (precisaSalvar){
-            await this.saveSchemaWebsocket();
-          }
         })
       );
-    }, 10000);
+  
+    }, 8000);
   }
 
   ngOnDestroy() {
@@ -98,18 +90,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
     document.removeEventListener('mousemove', this.boundOnResize);
     document.removeEventListener('mouseup', this.boundOnResizeEnd);
     this.subs.unsubscribe();
-  }
-
-  async saveSchemaWebsocket(){
-    const snapshot_tabelas = this.schemaService.exportToJointJSData()
-    // BUG DE QUANDO ELE RECEBE A ALTERAÇÃO ELE ENVIA UM NOVO EVENTO, DAÍ É GERADO UM LOOPING 
-
-    const schema_envio: InfoSchemaColab = {
-      schema_id: this.currentSchemaId,
-      table_info: snapshot_tabelas,
-    };
-
-    this.socketService.atualizacaoSchema(schema_envio)
   }
 
   setActiveEditor(editor: 'table' | 'code') {
@@ -182,25 +162,24 @@ export class SchemaComponent implements OnInit, OnDestroy {
   private loadSchemaFromRoute() {
     const schemaId = this.route.snapshot.paramMap.get('id');
     if (schemaId) {
-      console.log('Loading schema with ID:', schemaId);
       this.currentSchemaId = schemaId; // Store the current schema ID
       this.isLoadingSchema = true;
       this.schemaLoadError = null;
-      
       // Get the raw API response with cells
       this.schemaBackendService.getSchemaDetails(schemaId).subscribe({
         next: (response) => {
-
+          
           const jointjsGraph = {
             cells: response.cells || []
           };
-
+          
           this.isLoadingSchema = false;
 
           setTimeout(() => {
             if (this.diagramComponent) {
               // Clear existing data first
               this.diagramComponent.clearDiagram();
+              this.diagramComponent.setQtTablesReceived(jointjsGraph.cells.length);
               
               // Then load the new data
               this.diagramComponent.loadFromJointJSData(jointjsGraph);
