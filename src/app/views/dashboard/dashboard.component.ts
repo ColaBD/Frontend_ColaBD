@@ -49,7 +49,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (schemas) => {
         this.schemas = schemas;
         this.isLoading = false;
-        console.log('Schemas loaded:', schemas);
       },
       error: (error) => {
         this.error = error.message;
@@ -95,13 +94,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private createNewSchema(title: string) {
-    console.log('Creating new schema with title:', title);
     this.isLoading = true;
     this.error = null;
 
     this.schemaApiService.createSchema(title).subscribe({
       next: (newSchema) => {
-        console.log('Schema created successfully:', newSchema);
         this.isLoading = false;
         
         if (newSchema && newSchema.id) {
@@ -208,7 +205,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   duplicateSchema(schema: SchemaListItem) {
     this.activeMenuId = null;
-    console.log('Duplicating schema:', schema);
     alert('Funcionalidade de duplicar em desenvolvimento');
   }
 

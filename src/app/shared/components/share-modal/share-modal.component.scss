@@ -1,0 +1,361 @@
+.share-modal {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid #e0e0e0;
+
+    .header-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+
+      .share-icon {
+        color: #1976d2;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+        margin-top: 4px;
+      }
+
+      .header-text {
+        h2 {
+          margin: 0 0 4px 0;
+          font-size: 20px;
+          font-weight: 500;
+          color: #202124;
+        }
+
+        p {
+          margin: 0;
+          font-size: 14px;
+          color: #5f6368;
+        }
+      }
+    }
+
+    .close-button {
+      color: #5f6368;
+
+      &:hover {
+        background-color: #f1f3f4;
+      }
+    }
+  }
+
+  .add-people-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+
+    .add-people-input {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+
+      .email-input {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .permission-select {
+        width: 140px;
+        flex-shrink: 0;
+      }
+
+      .add-button {
+        height: 56px;
+        margin-top: 0;
+        flex-shrink: 0;
+        min-width: 100px;
+      }
+    }
+  }
+
+  .people-with-access {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+    max-height: 300px;
+
+    h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .user-list {
+      .user-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f3f4;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .user-avatar {
+          img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+        }
+
+        .user-info {
+          flex: 1;
+
+          .user-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 2px;
+          }
+
+          .user-email {
+            font-size: 12px;
+            color: #5f6368;
+          }
+        }
+
+        .user-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .permission-select-mini {
+            width: 120px;
+
+            ::ng-deep .mat-mdc-form-field-wrapper {
+              padding-bottom: 0;
+            }
+          }
+
+          .remove-button {
+            color: #5f6368;
+
+            &:hover {
+              background-color: #f1f3f4;
+              color: #d93025;
+            }
+          }
+        }
+      }
+    }
+
+    .no-users {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+      color: #5f6368;
+
+      mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        color: #dadce0;
+      }
+
+      p {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      span {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #5f6368;
+    min-height: 200px;
+
+    .spinner-border {
+      margin-bottom: 16px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+
+  .get-link-section {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+
+    .link-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+
+      mat-icon {
+        color: #5f6368;
+      }
+    }
+
+    .link-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+
+      .link-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+
+        .lock-icon {
+          color: #5f6368;
+          font-size: 20px;
+        }
+
+        .link-text {
+          strong {
+            display: block;
+            font-size: 14px;
+            color: #202124;
+            margin-bottom: 2px;
+          }
+
+          p {
+            margin: 0;
+            font-size: 12px;
+            color: #5f6368;
+          }
+        }
+      }
+
+      .copy-link-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1976d2;
+        border-color: #dadce0;
+
+        &:hover {
+          background-color: #f8f9fa;
+        }
+      }
+    }
+  }
+
+  .modal-actions {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: flex-end;
+
+    .cancel-button {
+      color: #1976d2;
+      font-weight: 500;
+    }
+  }
+}
+
+// Permission option styles
+.permission-option,
+.permission-option-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .share-modal {
+    width: 100%;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+
+    .add-people-section .add-people-input {
+      flex-direction: column;
+      gap: 16px;
+
+      .email-input,
+      .permission-select,
+      .add-button {
+        width: 100%;
+      }
+
+      .add-button {
+        height: 48px;
+      }
+    }
+
+    .people-with-access .user-list .user-item {
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .user-actions {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 8px;
+      }
+    }
+
+    .get-link-section .link-content {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+
+      .copy-link-button {
+        align-self: stretch;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+// Snackbar styles
+:host ::ng-deep {
+  .snackbar-success {
+    background-color: #4caf50 !important;
+    color: white !important;
+  }
+
+  .snackbar-error {
+    background-color: #f44336 !important;
+    color: white !important;
+  }
+
+  .snackbar-warning {
+    background-color: #ff9800 !important;
+    color: white !important;
+  }
+}

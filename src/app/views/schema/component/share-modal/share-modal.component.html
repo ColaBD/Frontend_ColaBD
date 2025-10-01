@@ -1,0 +1,64 @@
+<!-- Modal Backdrop -->
+<div *ngIf="isVisible" class="modal-backdrop" (click)="onBackdropClick($event)">
+    <!-- Modal Container -->
+    <div class="modal-container" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h5 class="modal-title">
+                <i class="bi bi-share me-2"></i>
+                Compartilhar "{{ schemaTitle }}"
+            </h5>
+            <button type="button" class="btn-close" (click)="closeModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+            <div class="share-section">
+                <label for="email-input" class="form-label">
+                    Adicionar participantes, grupos e eventos da agenda
+                </label>
+                <div class="input-group">
+                    <input
+                            id="email-input"
+                            type="email"
+                            class="form-control"
+                            [class.is-invalid]="!isEmailValid"
+                            [(ngModel)]="emailToShare"
+                            placeholder="Digite o email da pessoa"
+                            (keydown.enter)="onShare()"
+                            [disabled]="isSharing"
+                            autocomplete="email">
+                    <button
+                            class="btn btn-primary"
+                            [disabled]="!canShare"
+                            (click)="onShare()">
+                        <span *ngIf="isSharing" class="spinner-border spinner-border-sm me-1"></span>
+                        {{ isSharing ? 'Compartilhando...' : 'Compartilhar' }}
+                    </button>
+                </div>
+                <div *ngIf="!isEmailValid" class="invalid-feedback d-block">
+                    Por favor, digite um email válido.
+                </div>
+            </div>
+
+            <!-- Access Level Section (for future enhancement) -->
+            <div class="access-section">
+                <div class="access-info">
+                    <i class="bi bi-info-circle text-muted me-2"></i>
+                    <small class="text-muted">
+                        O usuário receberá acesso de visualização e edição ao schema.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>

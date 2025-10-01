@@ -44,15 +44,18 @@ export class TableEditorComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Get tables from service
     this.schemaService.getTables().subscribe(tables => {
-      this.tables = tables;
-    });
+      tables.forEach(newTable => {
+        const index = this.tables.findIndex(t => t.id == newTable.id);
     
-    // If no tables exist, add a default one
-    if (this.tables.length === 0) {
-      this.addTable();
-    }
+        if (index != -1) {
+          this.tables[index] = newTable;
+        } 
+        else {
+          this.tables.push(newTable);
+        }
+      });
+    });
   }
 
   addTable(): void {
@@ -211,15 +214,11 @@ export class TableEditorComponent implements OnInit {
     try {
       this.schemaService.loadFromJointJSData(jointjsData);
       // Tables will be automatically updated through the subscription
-      console.log('Table editor loaded from JointJS data');
     } catch (error) {
       console.error('Failed to load table editor from JointJS data:', error);
     }
   }
 
-  /**
-   * Load schema from JSON string
-   */
   loadFromJSONString(jsonString: string): void {
     try {
       this.schemaService.loadFromJSONString(jsonString);
@@ -229,30 +228,18 @@ export class TableEditorComponent implements OnInit {
     }
   }
 
-  /**
-   * Export current schema to JointJS format
-   */
   exportToJointJSData(): JointJSGraph {
     return this.schemaService.exportToJointJSData();
   }
 
-  /**
-   * Export current schema to JSON string
-   */
   exportToJSONString(): string {
     return this.schemaService.exportToJSONString();
   }
 
-  /**
-   * Clear all tables and relationships
-   */
   clearSchema(): void {
     this.schemaService.clearSchema();
   }
 
-  /**
-   * Download schema as JSON file
-   */
   downloadSchemaAsJSON(): void {
     try {
       const jsonString = this.exportToJSONString();
@@ -270,9 +257,6 @@ export class TableEditorComponent implements OnInit {
     }
   }
 
-  /**
-   * Handle file input for importing JSON schema
-   */
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -293,29 +277,20 @@ export class TableEditorComponent implements OnInit {
   }
 
   // Drag and Drop Methods
-  
-  /**
-   * Get all drop lists IDs for cross-table column transfer
-   */
   getDropListIds(): string[] {
     return this.tables.map(table => `columns-${table.id}`);
   }
 
-  /**
-   * Handle column drop event
-   */
   onColumnDrop(event: CdkDragDrop<TableColumn[]>, targetTable: TableDefinition): void {
     const sourceTableId = event.previousContainer.id.replace('columns-', '');
     const targetTableId = targetTable.id;
 
     if (event.previousContainer === event.container) {
-      // Same table - just reorder columns
       moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
-    } else {
-      // Different tables - transfer column
+    } 
+    else {
       const sourceTable = this.tables.find(table => table.id === sourceTableId);
       if (sourceTable) {
-        // Transfer column from source to target table
         transferArrayItem(
           event.previousContainer.data,
           event.container.data,
@@ -323,11 +298,8 @@ export class TableEditorComponent implements OnInit {
           event.currentIndex
         );
         
-        // Update both tables in the service
         this.schemaService.updateTable(sourceTable);
         this.schemaService.updateTable(targetTable);
-        
-        console.log(`Column moved from table ${sourceTable.name} to table ${targetTable.name}`);
       }
     }
     
@@ -335,24 +307,16 @@ export class TableEditorComponent implements OnInit {
     this.schemaService.updateTable(targetTable);
   }
 
-  /**
-   * Check if column can be dropped (prevent dropping primary key if it would leave table without one)
-   */
   canDropColumn(column: TableColumn, sourceTable: TableDefinition): boolean {
-    // If it's a primary key, check if source table would have another primary key
     if (column.isPrimaryKey) {
       const otherPrimaryKeys = sourceTable.columns.filter(col => 
         col !== column && col.isPrimaryKey
       );
-      // Allow dragging if there's at least one other primary key or if the table has only one column
       return otherPrimaryKeys.length > 0 || sourceTable.columns.length === 1;
     }
     return true;
   }
 
-  /**
-   * Get drag data for column
-   */
   getDragData(column: TableColumn): any {
     return {
       column: column,

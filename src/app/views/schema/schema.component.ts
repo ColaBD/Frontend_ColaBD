@@ -1,15 +1,19 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { FooterService } from '../../core/footer/services/footer.service';
 import { HighlightModule } from 'ngx-highlightjs';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+
+import { FooterService } from '../../core/footer/services/footer.service';
 import { CodeEditorComponent } from "./component/code-editor/code-editor.component";
 import { TableEditorComponent } from './component/table-editor/table-editor.component';
 import { DiagramComponent } from './component/diagram/diagram.component';
-import { MatButtonModule } from '@angular/material/button';
-import { CommonModule } from '@angular/common';
-import { SchemaService } from './services/schema.service';
 import { SchemaBackendService } from './services/schema-backend.service';
+import { ShareModalComponent } from "./component/share-modal/share-modal.component";
+import { SqlGeneratorModalComponent } from "./component/sql-generator-modal/sql-generator-modal.component";
+import { SchemaApiService } from './services/schema-api.service';
 
 @Component({
   selector: 'app-schema',
@@ -21,7 +25,9 @@ import { SchemaBackendService } from './services/schema-backend.service';
     TableEditorComponent,
     DiagramComponent,
     MatButtonModule,
-],
+    ShareModalComponent,
+    SqlGeneratorModalComponent,
+  ],
   templateUrl: './schema.component.html',
   styleUrl: './schema.component.scss',
 })
@@ -29,6 +35,7 @@ export class SchemaComponent implements OnInit, OnDestroy {
   @ViewChild(DiagramComponent) diagramComponent!: DiagramComponent;
   
   activeEditor: 'table' | 'code' = 'table';
+  comp_diagram_incializado = false;
   
   // Resizable panel properties
   editorWidth: number = 600; // Default width
@@ -37,6 +44,7 @@ export class SchemaComponent implements OnInit, OnDestroy {
   private startX: number = 0;
   private startEditorWidth: number = 0;
   private containerWidth: number = 0;
+  private subs = new Subscription();
   
   // Store bound functions for proper cleanup
   private boundUpdatePanelSizes = this.updatePanelSizes.bind(this);
@@ -49,23 +57,43 @@ export class SchemaComponent implements OnInit, OnDestroy {
 
   // Schema saving state
   isSavingSchema = false;
+  isSavingSchemaSocket = false;
   saveSuccess: boolean = false;
   saveError: string | null = null;
 
   // Current schema ID from route
   currentSchemaId: string | null = null;
 
+  // Share modal state
+  isShareModalVisible = false;
+  currentSchemaTitle = '';
+
+  // SQL Generator modal state
+  isSqlGeneratorModalVisible = false;
+  sqlGeneratorSchemaString = '';
+
   constructor(
     private footerService: FooterService,
     private route: ActivatedRoute,
-    private schemaService: SchemaService,
-    private schemaBackendService: SchemaBackendService
+    private schemaBackendService: SchemaBackendService,
+    private schemaApiService: SchemaApiService,
   ) { }
 
   ngOnInit() {
     this.footerService.setFooterVisibility(false);
     this.initializeResizablePanels();
     this.loadSchemaFromRoute();
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => {
+      this.subs.add(
+        this.diagramComponent.precisaSalvar.subscribe(async (precisaSalvar) => {
+          this.isSavingSchemaSocket = precisaSalvar;
+        })
+      );
+  
+    }, 8000);
   }
 
   ngOnDestroy() {
@@ -75,6 +103,7 @@ export class SchemaComponent implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.boundUpdatePanelSizes);
     document.removeEventListener('mousemove', this.boundOnResize);
     document.removeEventListener('mouseup', this.boundOnResizeEnd);
+    this.subs.unsubscribe();
   }
 
   setActiveEditor(editor: 'table' | 'code') {
@@ -147,35 +176,28 @@ export class SchemaComponent implements OnInit, OnDestroy {
   private loadSchemaFromRoute() {
     const schemaId = this.route.snapshot.paramMap.get('id');
     if (schemaId) {
-      console.log('Loading schema with ID:', schemaId);
       this.currentSchemaId = schemaId; // Store the current schema ID
+      this.currentSchemaTitle = `Schema ${schemaId}`; // Set title for modals
       this.isLoadingSchema = true;
       this.schemaLoadError = null;
-      
       // Get the raw API response with cells
       this.schemaBackendService.getSchemaDetails(schemaId).subscribe({
         next: (response) => {
-          console.log('Raw API response:', response);
           
-          // Build JointJS graph object from the cells array
           const jointjsGraph = {
             cells: response.cells || []
           };
           
-          console.log('Built JointJS graph:', jointjsGraph);
-          
-          // Set loading to false first so the diagram component gets rendered
           this.isLoadingSchema = false;
-          
-          // Use setTimeout to ensure the diagram component is initialized after the template updates
+
           setTimeout(() => {
             if (this.diagramComponent) {
               // Clear existing data first
               this.diagramComponent.clearDiagram();
+              this.diagramComponent.setQtTablesReceived(jointjsGraph.cells.length);
               
               // Then load the new data
               this.diagramComponent.loadFromJointJSData(jointjsGraph);
-              console.log('Schema loaded successfully into diagram');
             } else {
               console.error('Diagram component not available');
               this.schemaLoadError = 'Failed to initialize diagram component';
@@ -191,72 +213,148 @@ export class SchemaComponent implements OnInit, OnDestroy {
     }
   }
 
-  async saveSchema(): Promise<void> {
+  // async getCanvasFromDiagram(): Promise<HTMLCanvasElement | null> {
+  //   let canvas: HTMLCanvasElement | null = null;
+  //   if (this.diagramComponent) {
+  //     canvas = await this.diagramComponent.getCanvasForSave();
+  //   }
+
+  //   return canvas;
+  // }
+
+  // async saveSchema(): Promise<void> {
+  //   if (!this.currentSchemaId) {
+  //     console.error('No schema ID available for saving');
+  //     this.saveError = 'No schema ID available for saving';
+  //     return;
+  //   }
+
+  //   this.isSavingSchema = true;
+  //   this.saveError = null;
+  //   this.saveSuccess = false;
+
+  //   try {
+  //     const canvas = await this.getCanvasFromDiagram();
+
+  //     // Get current schema data from the service and save with canvas
+  //     this.schemaService.saveSchemaToBackend(this.currentSchemaId, canvas || undefined).subscribe({
+  //       next: (response) => {
+  //         console.log('Schema saved successfully:', response);
+  //         this.isSavingSchema = false;
+  //         this.saveSuccess = true;
+          
+  //         // Clear success message after 3 seconds
+  //         setTimeout(() => {
+  //           this.saveSuccess = false;
+  //         }, 3000);
+  //       },
+  //       error: (error: any) => {
+  //         console.error('Error saving schema:', error);
+  //         this.saveError = `Error saving schema: ${error.message}`;
+  //         this.isSavingSchema = false;
+          
+  //         // Clear error message after 5 seconds
+  //         setTimeout(() => {
+  //           this.saveError = null;
+  //         }, 5000);
+  //       }
+  //     });
+  //   } catch (error) {
+  //     console.error('Error capturing canvas:', error);
+  //     // Fallback: save without canvas
+  //     this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
+  //       next: (response) => {
+  //         console.log('Schema saved successfully (without image):', response);
+  //         this.isSavingSchema = false;
+  //         this.saveSuccess = true;
+          
+  //         // Clear success message after 3 seconds
+  //         setTimeout(() => {
+  //           this.saveSuccess = false;
+  //         }, 3000);
+  //       },
+  //       error: (error: any) => {
+  //         console.error('Error saving schema:', error);
+  //         this.saveError = `Error saving schema: ${error.message}`;
+  //         this.isSavingSchema = false;
+          
+  //         // Clear error message after 5 seconds
+  //         setTimeout(() => {
+  //           this.saveError = null;
+  //         }, 5000);
+  //       }
+  //     });
+  //   }
+  // }
+
+  // Share modal methods
+  openShareModal() {
+    this.isShareModalVisible = true;
+  }
+
+  closeShareModal() {
+    this.isShareModalVisible = false;
+  }
+
+  shareSchemaWithUser(event: { email: string; permission: 'viewer' | 'editor' }) {
     if (!this.currentSchemaId) {
-      console.error('No schema ID available for saving');
+      console.error('No schema ID available for sharing');
+      return;
+    }
+
+    this.schemaApiService.shareSchema(this.currentSchemaId, event.email).subscribe({
+      next: (response) => {
+        console.log('Schema compartilhado com sucesso:', response);
+        // Success message is already shown by the modal component
+      },
+      error: (error) => {
+        console.error('Erro ao compartilhar schema:', error);
+        alert(`Erro ao compartilhar schema: ${error.message}`);
+      }
+    });
+  }
+
+  // SQL Generator methods
+  generateSQL() {
+    try {
+      if (this.diagramComponent?.exportToJSONString) {
+        this.sqlGeneratorSchemaString = this.diagramComponent.exportToJSONString();
+      } else {
+        this.sqlGeneratorSchemaString = '';
+      }
+    } catch (error) {
+      console.error('Error exporting schema:', error);
+      this.sqlGeneratorSchemaString = '';
+    }
+    this.isSqlGeneratorModalVisible = true;
+  }
+
+  closeSqlGeneratorModal() {
+    this.isSqlGeneratorModalVisible = false;
+  }
+
+  onGenerateSQL(database: 'mysql' | 'postgresql') {
+    console.log('Generating SQL for database:', database);
+    // The actual generation is handled by the modal component
+  }
+
+  // Save schema method
+  saveSchema() {
+    if (!this.currentSchemaId) {
       this.saveError = 'No schema ID available for saving';
+      setTimeout(() => (this.saveError = null), 3000);
       return;
     }
 
     this.isSavingSchema = true;
-    this.saveError = null;
     this.saveSuccess = false;
+    this.saveError = null;
 
-    try {
-      // Try to get canvas from diagram component
-      let canvas: HTMLCanvasElement | null = null;
-      if (this.diagramComponent) {
-        canvas = await this.diagramComponent.getCanvasForSave();
-      }
-
-      // Get current schema data from the service and save with canvas
-      this.schemaService.saveSchemaToBackend(this.currentSchemaId, canvas || undefined).subscribe({
-        next: (response) => {
-          console.log('Schema saved successfully:', response);
-          this.isSavingSchema = false;
-          this.saveSuccess = true;
-          
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            this.saveSuccess = false;
-          }, 3000);
-        },
-        error: (error: any) => {
-          console.error('Error saving schema:', error);
-          this.saveError = `Error saving schema: ${error.message}`;
-          this.isSavingSchema = false;
-          
-          // Clear error message after 5 seconds
-          setTimeout(() => {
-            this.saveError = null;
-          }, 5000);
-        }
-      });
-    } catch (error) {
-      console.error('Error capturing canvas:', error);
-      // Fallback: save without canvas
-      this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
-        next: (response) => {
-          console.log('Schema saved successfully (without image):', response);
-          this.isSavingSchema = false;
-          this.saveSuccess = true;
-          
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            this.saveSuccess = false;
-          }, 3000);
-        },
-        error: (error: any) => {
-          console.error('Error saving schema:', error);
-          this.saveError = `Error saving schema: ${error.message}`;
-          this.isSavingSchema = false;
-          
-          // Clear error message after 5 seconds
-          setTimeout(() => {
-            this.saveError = null;
-          }, 5000);
-        }
-      });
-    }
+    // TODO: Implement actual save logic with backend
+    setTimeout(() => {
+      this.isSavingSchema = false;
+      this.saveSuccess = true;
+      setTimeout(() => (this.saveSuccess = false), 2000);
+    }, 800);
   }
 }

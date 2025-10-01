@@ -1,0 +1,158 @@
+<div class="share-modal">
+    <!-- Header -->
+    <div class="modal-header">
+        <div class="header-content">
+            <mat-icon class="share-icon">share</mat-icon>
+            <div class="header-text">
+                <h2>Compartilhar "{{ data.schemaName }}"</h2>
+                <p>Adicione pessoas e grupos para compartilhar este schema</p>
+            </div>
+        </div>
+        <button mat-icon-button (click)="close()" class="close-button">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <!-- Add People Section -->
+    <div class="add-people-section">
+        <div class="add-people-input">
+            <mat-form-field appearance="outline" class="email-input">
+                <mat-label>Adicionar pessoas e grupos</mat-label>
+                <input
+                        matInput
+                        [(ngModel)]="newUserEmail"
+                        placeholder="Digite um email"
+                        (keypress)="onEmailKeyPress($event)"
+                        [disabled]="isSaving">
+                <mat-icon matSuffix>person_add</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="permission-select">
+                <mat-label>Permissão</mat-label>
+                <mat-select [(value)]="newUserPermission" [disabled]="isSaving">
+                    <mat-option value="viewer">
+                        <div class="permission-option">
+                            <mat-icon>visibility</mat-icon>
+                            <span>Visualizador</span>
+                        </div>
+                    </mat-option>
+                    <mat-option value="editor">
+                        <div class="permission-option">
+                            <mat-icon>edit</mat-icon>
+                            <span>Editor</span>
+                        </div>
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="addUser()"
+                    [disabled]="!newUserEmail.trim() || isSaving"
+                    class="add-button">
+                <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-2"></span>
+                {{ isSaving ? 'Adicionando...' : 'Enviar' }}
+            </button>
+        </div>
+    </div>
+
+    <!-- People with Access -->
+    <div class="people-with-access" *ngIf="!isLoading">
+        <h3>Pessoas com acesso</h3>
+
+        <div class="user-list" *ngIf="sharedUsers.length > 0; else noUsers">
+            <div class="user-item" *ngFor="let user of sharedUsers; trackBy: trackUser">
+                <div class="user-avatar">
+                    <img
+                            [src]="user.avatar"
+                            [alt]="user.name || user.email"
+                            >
+                </div>
+
+                <div class="user-info">
+                    <div class="user-name">{{ user.name || user.email }}</div>
+                    <div class="user-email" *ngIf="user.name">{{ user.email }}</div>
+                </div>
+
+                <div class="user-actions">
+                    <mat-form-field appearance="outline" class="permission-select-mini">
+                        <mat-select
+                                [value]="user.permission"
+                                (selectionChange)="changeUserPermission(user.email, $event.value)">
+                            <mat-option value="viewer">
+                                <div class="permission-option-mini">
+                                    <mat-icon>visibility</mat-icon>
+                                    <span>Visualizador</span>
+                                </div>
+                            </mat-option>
+                            <mat-option value="editor">
+                                <div class="permission-option-mini">
+                                    <mat-icon>edit</mat-icon>
+                                    <span>Editor</span>
+                                </div>
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+
+                    <button
+                            mat-icon-button
+                            (click)="removeUser(user.email)"
+                            class="remove-button"
+                            title="Remover acesso">
+                        <mat-icon>person_remove</mat-icon>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <ng-template #noUsers>
+            <div class="no-users">
+                <mat-icon>people_outline</mat-icon>
+                <p>Nenhum usuário com acesso ainda</p>
+                <span>Adicione pessoas usando o campo acima</span>
+            </div>
+        </ng-template>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Carregando usuários...</span>
+        </div>
+        <p>Carregando usuários com acesso...</p>
+    </div>
+
+    <!-- Get Link Section -->
+    <div class="get-link-section">
+        <div class="link-header">
+            <mat-icon>link</mat-icon>
+            <span>Obter link</span>
+        </div>
+
+        <div class="link-content">
+            <div class="link-info">
+                <mat-icon class="lock-icon">lock</mat-icon>
+                <div class="link-text">
+                    <strong>Restrito</strong>
+                    <p>Apenas pessoas adicionadas podem acessar com o link</p>
+                </div>
+            </div>
+
+            <button
+                    mat-stroked-button
+                    (click)="copyLink()"
+                    class="copy-link-button">
+                <mat-icon>content_copy</mat-icon>
+                Copiar link
+            </button>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+        <button mat-button (click)="close()" class="cancel-button">
+            Concluído
+        </button>
+    </div>
+</div>
