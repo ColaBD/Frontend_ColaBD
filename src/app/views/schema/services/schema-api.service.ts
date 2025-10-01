@@ -16,6 +16,7 @@ import {
 export class SchemaApiService {
   private endpoint: string = 'https://backend-colabd.onrender.com/';
   private endpointSchemas: string = this.endpoint + 'schemas';
+  private endpointGenerateSql: string = this.endpoint + 'generate-sql';
 
   constructor(
     private http: HttpClient, 
@@ -145,5 +146,28 @@ export class SchemaApiService {
         }
       }, 'image/png', 0.9);
     });
+  }
+
+  public shareSchema(schemaId: string, userEmail: string): Observable<{ success: boolean, message: string }> {
+    const body = {
+      schema_id: schemaId,
+      user_email: userEmail
+    };
+
+    return this.http.patch<{ success: boolean, message: string }>(this.endpointSchemas, body, this.obterHeadersAutorizacao())
+        .pipe(
+            catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
+        );
+  }
+
+  /**
+   * Request backend to generate SQL from JointJS schema and return a signed download URL
+   */
+  public generateSQL(schema: string, sgbd: 'mysql' | 'postgresql' | 'oracle' | string): Observable<{ url: string }> {
+    const body = { schema, sgbd };
+    return this.http.post<{ url: string }>(this.endpointGenerateSql, body, this.obterHeadersAutorizacao())
+        .pipe(
+            catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
+        );
   }
 } 

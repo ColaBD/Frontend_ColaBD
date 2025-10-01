@@ -43,24 +43,36 @@
         <div class="nav-item" [class.active]="activeEditor === 'table'" (click)="setActiveEditor('table')">
           <span>Edição de Tabelas</span>
         </div>
-        <div class="nav-item" [class.active]="activeEditor === 'code'" (click)="setActiveEditor('code')">
-          <span>SQL Schema</span>
-        </div>
-        <i 
-          class="ms-auto text-light me-4" 
-          [class]="isSavingSchemaSocket ? 'spinner-border spinner-border-sm' : 'bi-cloud-check'"
-          [title]="isSavingSchemaSocket ? 'Salvando...' : 'Tudo salvo!'"
-        ></i>
-        <!-- <div class="nav-actions ms-auto">
-          <button 
-            class="btn btn-primary btn-sm"
-            [disabled]="isSavingSchema"
-            (click)="saveSchema()"
-            title="Salvar Schema">
-            <span *ngIf="isSavingSchema" class="spinner-border spinner-border-sm me-1" role="status"></span>
-            {{ isSavingSchema ? 'Salvando...' : 'Salvar' }}
-          </button>
-        </div> -->
+          <div class="nav-actions ms-auto d-flex align-items-center">
+              <button
+                      class="btn btn-generate-sql me-2"
+                      (click)="generateSQL()"
+                      title="Gerar SQL">
+                  <i class="bi bi-file-code"></i>
+                  <span class="generate-text">
+             </span>
+              </button>
+              <button
+                      class="btn btn-share me-3"
+                      (click)="openShareModal()"
+              >
+                  <i class="bi bi-share"></i>
+                  <span class="share-text"></span>
+              </button>
+              <button
+                      class="btn btn-primary btn-sm me-3"
+                      [disabled]="isSavingSchema"
+                      (click)="saveSchema()"
+                      title="Salvar Schema">
+                  <span *ngIf="isSavingSchema" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                  {{ isSavingSchema ? 'Salvando...' : 'Salvar' }}
+              </button>
+              <i
+                      class="text-light"
+                      [class]="isSavingSchemaSocket ? 'spinner-border spinner-border-sm' : 'bi-cloud-check'"
+                      [title]="isSavingSchemaSocket ? 'Salvando...' : 'Tudo salvo!'"
+              ></i>
+          </div>
       </div>
       <div class="editor-content">
         <div *ngIf="activeEditor === 'table'" class="table-editor-view">
@@ -81,4 +93,20 @@
       <app-diagram></app-diagram>
     </div>
   </div>
+
+    <app-share-modal
+            [isVisible]="isShareModalVisible"
+            [schemaTitle]="currentSchemaTitle"
+            (close)="closeShareModal()"
+            (shareWithUser)="shareSchemaWithUser($event)">
+    </app-share-modal>
+
+    <!-- SQL Generator Modal -->
+    <app-sql-generator-modal
+            [isVisible]="isSqlGeneratorModalVisible"
+            [schemaTitle]="currentSchemaTitle"
+            [schema]="sqlGeneratorSchemaString"
+            (close)="closeSqlGeneratorModal()"
+            (generateSQL)="onGenerateSQL($event)">
+    </app-sql-generator-modal>
 </section>

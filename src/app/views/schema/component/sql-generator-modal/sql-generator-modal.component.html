@@ -1,0 +1,74 @@
+<!-- Modal Backdrop -->
+<div *ngIf="isVisible" class="modal-backdrop" (click)="onBackdropClick($event)">
+    <!-- Modal Container -->
+    <div class="modal-container" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h5 class="modal-title">
+                <i class="bi bi-file-code me-2"></i>
+                Gerar SQL - "{{ schemaTitle }}"
+            </h5>
+            <button type="button" class="btn-close" (click)="closeModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+            <div class="database-selection">
+                <label class="form-label">
+                    Selecione o tipo de banco de dados:
+                </label>
+
+                <!-- Database Options -->
+                <div class="database-options">
+                    <div
+                            *ngFor="let option of databaseOptions"
+                            class="database-option"
+                            [class.selected]="selectedDatabase === option.value"
+                            (click)="onDatabaseChange(option.value)">
+                        <div class="option-content">
+                            <i [class]="option.icon + ' option-icon'"></i>
+                            <span class="option-label">{{ option.label }}</span>
+                        </div>
+                        <div class="option-radio">
+                            <input
+                                    type="radio"
+                                    [id]="'db-' + option.value"
+                                    [value]="option.value"
+                                    [(ngModel)]="selectedDatabase"
+                                    name="database-type">
+                            <label [for]="'db-' + option.value" class="radio-label"></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="info-section">
+                    <div class="info-content">
+                        <i class="bi bi-info-circle text-muted me-2"></i>
+                        <small class="text-muted">
+                            O SQL será gerado com a sintaxe específica para o banco de dados selecionado.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">
+                Cancelar
+            </button>
+            <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="isGenerating"
+                    (click)="onGenerate()">
+                <span *ngIf="isGenerating" class="spinner-border spinner-border-sm me-1"></span>
+                <i *ngIf="!isGenerating" class="bi bi-file-code me-1"></i>
+                {{ isGenerating ? 'Gerando...' : 'Gerar SQL' }}
+            </button>
+        </div>
+    </div>
+</div>

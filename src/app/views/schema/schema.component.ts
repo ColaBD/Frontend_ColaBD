@@ -11,6 +11,9 @@ import { CodeEditorComponent } from "./component/code-editor/code-editor.compone
 import { TableEditorComponent } from './component/table-editor/table-editor.component';
 import { DiagramComponent } from './component/diagram/diagram.component';
 import { SchemaBackendService } from './services/schema-backend.service';
+import { ShareModalComponent } from "./component/share-modal/share-modal.component";
+import { SqlGeneratorModalComponent } from "./component/sql-generator-modal/sql-generator-modal.component";
+import { SchemaApiService } from './services/schema-api.service';
 
 @Component({
   selector: 'app-schema',
@@ -22,7 +25,9 @@ import { SchemaBackendService } from './services/schema-backend.service';
     TableEditorComponent,
     DiagramComponent,
     MatButtonModule,
-],
+    ShareModalComponent,
+    SqlGeneratorModalComponent,
+  ],
   templateUrl: './schema.component.html',
   styleUrl: './schema.component.scss',
 })
@@ -59,10 +64,19 @@ export class SchemaComponent implements OnInit, OnDestroy {
   // Current schema ID from route
   currentSchemaId: string | null = null;
 
+  // Share modal state
+  isShareModalVisible = false;
+  currentSchemaTitle = '';
+
+  // SQL Generator modal state
+  isSqlGeneratorModalVisible = false;
+  sqlGeneratorSchemaString = '';
+
   constructor(
     private footerService: FooterService,
     private route: ActivatedRoute,
     private schemaBackendService: SchemaBackendService,
+    private schemaApiService: SchemaApiService,
   ) { }
 
   ngOnInit() {
@@ -163,6 +177,7 @@ export class SchemaComponent implements OnInit, OnDestroy {
     const schemaId = this.route.snapshot.paramMap.get('id');
     if (schemaId) {
       this.currentSchemaId = schemaId; // Store the current schema ID
+      this.currentSchemaTitle = `Schema ${schemaId}`; // Set title for modals
       this.isLoadingSchema = true;
       this.schemaLoadError = null;
       // Get the raw API response with cells
@@ -271,4 +286,75 @@ export class SchemaComponent implements OnInit, OnDestroy {
   //     });
   //   }
   // }
+
+  // Share modal methods
+  openShareModal() {
+    this.isShareModalVisible = true;
+  }
+
+  closeShareModal() {
+    this.isShareModalVisible = false;
+  }
+
+  shareSchemaWithUser(event: { email: string; permission: 'viewer' | 'editor' }) {
+    if (!this.currentSchemaId) {
+      console.error('No schema ID available for sharing');
+      return;
+    }
+
+    this.schemaApiService.shareSchema(this.currentSchemaId, event.email).subscribe({
+      next: (response) => {
+        console.log('Schema compartilhado com sucesso:', response);
+        // Success message is already shown by the modal component
+      },
+      error: (error) => {
+        console.error('Erro ao compartilhar schema:', error);
+        alert(`Erro ao compartilhar schema: ${error.message}`);
+      }
+    });
+  }
+
+  // SQL Generator methods
+  generateSQL() {
+    try {
+      if (this.diagramComponent?.exportToJSONString) {
+        this.sqlGeneratorSchemaString = this.diagramComponent.exportToJSONString();
+      } else {
+        this.sqlGeneratorSchemaString = '';
+      }
+    } catch (error) {
+      console.error('Error exporting schema:', error);
+      this.sqlGeneratorSchemaString = '';
+    }
+    this.isSqlGeneratorModalVisible = true;
+  }
+
+  closeSqlGeneratorModal() {
+    this.isSqlGeneratorModalVisible = false;
+  }
+
+  onGenerateSQL(database: 'mysql' | 'postgresql') {
+    console.log('Generating SQL for database:', database);
+    // The actual generation is handled by the modal component
+  }
+
+  // Save schema method
+  saveSchema() {
+    if (!this.currentSchemaId) {
+      this.saveError = 'No schema ID available for saving';
+      setTimeout(() => (this.saveError = null), 3000);
+      return;
+    }
+
+    this.isSavingSchema = true;
+    this.saveSuccess = false;
+    this.saveError = null;
+
+    // TODO: Implement actual save logic with backend
+    setTimeout(() => {
+      this.isSavingSchema = false;
+      this.saveSuccess = true;
+      setTimeout(() => (this.saveSuccess = false), 2000);
+    }, 800);
+  }
 }
