@@ -45,16 +45,19 @@ export class TableEditorComponent implements OnInit {
 
   ngOnInit(): void {
     this.schemaService.getTables().subscribe(tables => {
-      tables.forEach(newTable => {
-        const index = this.tables.findIndex(t => t.id == newTable.id);
-    
-        if (index != -1) {
-          this.tables[index] = newTable;
-        } 
-        else {
-          this.tables.push(newTable);
+      const tableMap = new Map(tables.map(t => [t.id, t]));
+
+      const updated = this.tables
+        .filter(t => tableMap.has(t.id))
+        .map(t => tableMap.get(t.id)!);
+
+      for (const t of tables) {
+        if (!updated.some(u => u.id === t.id)) {
+          updated.push(t);
         }
-      });
+      }
+
+      this.tables = updated;
     });
   }
 

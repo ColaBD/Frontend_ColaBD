@@ -43,36 +43,26 @@
         <div class="nav-item" [class.active]="activeEditor === 'table'" (click)="setActiveEditor('table')">
           <span>Edição de Tabelas</span>
         </div>
-          <div class="nav-actions ms-auto d-flex align-items-center">
-              <button
-                      class="btn btn-generate-sql me-2"
-                      (click)="generateSQL()"
-                      title="Gerar SQL">
-                  <i class="bi bi-file-code"></i>
-                  <span class="generate-text">
-             </span>
-              </button>
-              <button
-                      class="btn btn-share me-3"
-                      (click)="openShareModal()"
-              >
-                  <i class="bi bi-share"></i>
-                  <span class="share-text"></span>
-              </button>
-              <button
-                      class="btn btn-primary btn-sm me-3"
-                      [disabled]="isSavingSchema"
-                      (click)="saveSchema()"
-                      title="Salvar Schema">
-                  <span *ngIf="isSavingSchema" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                  {{ isSavingSchema ? 'Salvando...' : 'Salvar' }}
-              </button>
-              <i
-                      class="text-light"
-                      [class]="isSavingSchemaSocket ? 'spinner-border spinner-border-sm' : 'bi-cloud-check'"
-                      [title]="isSavingSchemaSocket ? 'Salvando...' : 'Tudo salvo!'"
-              ></i>
-          </div>
+        <div class="nav-actions ms-auto d-flex align-items-center">
+            <button
+                class="btn btn-generate-sql me-2"
+                (click)="generateSQL()"
+                title="Gerar SQL do schema">
+                <i class="bi bi-file-code"></i>
+                <!-- <span class="generate-text"></span> -->
+            </button>
+            <button
+                class="btn btn-share me-3"
+                (click)="openShareModal()"
+                title="Compartilhar o schema">
+                <i class="bi bi-share"></i>
+                <!-- <span class="share-text"></span> -->
+            </button>
+            <i
+              class="text-light me-3"
+              [class]="isSavingSchemaSocket ? 'spinner-border spinner-border-sm' : 'bi-cloud-check'"
+              [title]="isSavingSchemaSocket ? 'Salvando...' : 'Tudo salvo!'"></i>
+        </div>
       </div>
       <div class="editor-content">
         <div *ngIf="activeEditor === 'table'" class="table-editor-view">

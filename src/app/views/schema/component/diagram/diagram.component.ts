@@ -76,7 +76,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     this.subscription.add(
       this.socketService.schemaAtualizadoSubject.subscribe((received_ws_data) => {
         this.dadosRecebidos = true;
-        console.log("Dados recebidos via WebSockettttttttt:   ", JSON.stringify(received_ws_data));
         this.loadJointJSFromWS(received_ws_data)
       })
     );
@@ -133,19 +132,15 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private tableAction(cells: JointJSCell[] ,receivedData: BaseTable) {
     if (receivedData instanceof CreateTable) {
-      console.log("CreateTable recebido");
       cells = this.manipulateCreateTable(cells, receivedData);
     } 
     else if (receivedData instanceof DeleteTable) {
-      console.log("DeleteTable recebido");
       cells = this.manipulateDeleteTable(cells, receivedData);
     } 
     else if (receivedData instanceof UpdateTable) {
-      console.log("UpdateTable recebido");
       cells = this.manipulateUpdateTable(cells, receivedData);
     } 
     else if (receivedData instanceof MoveTable) {
-      console.log("MoveTable recebido");
       cells = this.manipulateMoveTable(cells, receivedData);
     }
 
@@ -205,8 +200,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       const updated_cells = this.tableAction(current_cells, received_ws_data);
       
       const graph: JointJSGraph = { cells: updated_cells };
-
-      console.log("Graph atualizado: ", graph);
 
       this.schemaService.loadFromJointJSData(graph);
 
@@ -276,8 +269,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       id: table_id
     }
 
-    console.log('Removidooooooo               ', JSON.stringify(dataWS))
-
     this.sendWSRequest(dataWS, "delete_table")
   }
 
@@ -291,8 +282,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       id: table_id,
       attrs: {...new_attrs}
     }
-
-    console.log('Atualizadoooooo               ', JSON.stringify(dataWS))
 
     this.sendWSRequest(dataWS, "update_table_atributes")
   }
@@ -311,8 +300,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
         y: pos_y
       }
     }
-
-    console.log('Movidooooooooooo               ', JSON.stringify(dataWS))
 
     this.sendWSRequest(dataWS, "move_table")
   }
@@ -1499,8 +1486,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   reinitializeDiagram(): void {
-    console.log('Force reinitializing diagram...');
-
     if (this.paper) {
       this.paper.remove();
     }
@@ -1526,8 +1511,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     const parentWidth = element.offsetWidth;
     const parentHeight = element.offsetHeight;
     
-    console.log(`Force resizing canvas to: ${parentWidth}x${parentHeight}`);
-    
     if (parentWidth > 0 && parentHeight > 0) {
       try {
         this.paper.setDimensions(parentWidth, parentHeight);
@@ -1536,7 +1519,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
         this.paper.drawBackground();
         this.paper.drawGrid();
         
-        console.log('Canvas force resized successfully');
       } catch (error) {
         console.error('Error force resizing canvas:', error);
       }
@@ -1627,7 +1609,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       canvas.toBlob((blob: Blob | null) => {
         if (blob) {
           this.downloadBlob(blob, filename);
-          console.log('Screenshot captured successfully!');
         }
       }, 'image/png', 1.0);
 
@@ -1692,7 +1673,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       canvas.toBlob((blob) => {
         if (blob) {
           this.downloadBlob(blob, filename);
-          console.log('Screenshot captured with canvas fallback!');
         }
       }, 'image/png', 1.0);
     } else {

@@ -337,24 +337,4 @@ export class SchemaComponent implements OnInit, OnDestroy {
     console.log('Generating SQL for database:', database);
     // The actual generation is handled by the modal component
   }
-
-  // Save schema method
-  saveSchema() {
-    if (!this.currentSchemaId) {
-      this.saveError = 'No schema ID available for saving';
-      setTimeout(() => (this.saveError = null), 3000);
-      return;
-    }
-
-    this.isSavingSchema = true;
-    this.saveSuccess = false;
-    this.saveError = null;
-
-    // TODO: Implement actual save logic with backend
-    setTimeout(() => {
-      this.isSavingSchema = false;
-      this.saveSuccess = true;
-      setTimeout(() => (this.saveSuccess = false), 2000);
-    }, 800);
-  }
 }

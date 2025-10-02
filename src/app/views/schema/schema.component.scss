@@ -103,9 +103,8 @@
 
   .btn-generate-sql,
   .btn-share {
-    background-color: #0d6efd;
-    color: white;
-    border: none;
+    background-color: transparent;
+    color: rgb(216, 255, 242);
     padding: 8px 16px;
     transition: all 0.2s ease;
 
@@ -114,13 +113,14 @@
     }
 
     &:hover {
-      background-color: #0b5ed7;
+      background-color: #d3ffdd;
+      color: #004136;
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
     &:active {
-      background-color: #0a58ca;
+      background-color: #d3ffdd;
       transform: translateY(0);
     }
   }
