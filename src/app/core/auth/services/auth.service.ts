@@ -53,12 +53,14 @@ export class AuthService{
   }
 
   public registrar(user: RegisterUserVM): Observable<TokenVM>{
+    console.log("func registrar")
     return this.http.post<any>(this.endpointRegistrar, user)
       .pipe(
-        map((res) => res.dados),
-        tap((dados: TokenVM) => {
+        map((res) => res.data),
+        tap((data: TokenVM) => {
+          console.log('tap do register     '+JSON.stringify(data))
           // this.localStorageService.salvarDadosLocaisUser(dados.access_token);
-          this.notificarLogin(dados.access_token); 
+          this.notificarLogin(data.access_token); 
         }),
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
       );
@@ -75,17 +77,6 @@ export class AuthService{
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
       );
   }
-
-  // private obterHeadersAutorizacao() {
-  //   const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
-
-  //   return {
-  //     headers: new HttpHeaders({
-  //       'Content-Type': 'application/json',
-  //       Authorization: `Bearer ${token}`,
-  //     }),
-  //   };
-  // }
 
   public logout(){
     this.localStorageService.limparDadosLocais();

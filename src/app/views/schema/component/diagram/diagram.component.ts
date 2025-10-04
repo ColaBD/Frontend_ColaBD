@@ -206,16 +206,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       this.fitContent();
       this.dadosRecebidos = false;
 
-      // const cells = this.schemaService.exportToJointJSData().cells;
-      // const updatedCells = this.tableAction(cells, received_ws_data);
-
-      // this.graph.resetCells(updatedCells.map(c => new joint.shapes.standard.Rectangle(c)));
-  
-      // this.schemaService.loadFromJointJSData({ cells: updatedCells });
-
-      // this.fitContent();
-      // this.dadosRecebidos = false;
-
     } catch (error) {
       console.error('Failed to load diagram from JointJS data:', error);
     }
@@ -324,18 +314,18 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       }
     });
 
-    this.graph.on('change:attrs', (cell: joint.dia.Cell) => {
+    this.graph.on('change', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos){
-        this.updateCellAndSend(cell);
+        const changed = cell.changed
+        if(changed.attrs){
+          this.updateCellAndSend(cell);
+        }
+        
+        if(cell.position() && this.indexTablesLoaded > this.qtTablesLoaded){
+          this.moveCellAndSend(cell);
+        }
+        this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
       }
-    });
-
-    this.graph.on('change:position', (cell: joint.dia.Cell) => {
-      if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
-        this.moveCellAndSend(cell);
-      }
-      
-      this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
     });
   }
 

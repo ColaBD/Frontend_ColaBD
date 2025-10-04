@@ -15,6 +15,7 @@ export class SchemaApiWebsocketService {
     transports: ["websocket"],
     autoConnect: false // evita conectar sem auth
   });
+  private schema_id: string | null = "";
 
   constructor(private localStorageService: LocalStorageService, private route: ActivatedRoute) { }
 
@@ -26,6 +27,8 @@ export class SchemaApiWebsocketService {
       token: token,
       schema_id: schemaId
     }
+
+    this.schema_id = schemaId;
     
     this.socket.connect();
 
@@ -39,7 +42,9 @@ export class SchemaApiWebsocketService {
   //Envia atualização do schema para o servidor
   atualizacaoSchema(schema_update: BaseTable, channel_emit: string) {
     console.log('Enviando atualização do schema via WebSocket:', schema_update);
-    this.socket.emit(channel_emit, schema_update);
+
+    const endpoint_ws = `${channel_emit}_${this.schema_id}`;
+    this.socket.emit(endpoint_ws, schema_update);
   }
 
   private toClass<T extends object>(cls: new () => T, data: any): void {
@@ -49,25 +54,25 @@ export class SchemaApiWebsocketService {
   }
   
   onCreatedSchema(){
-    this.socket.on("receive_new_table", (data: any) => {
+    this.socket.on(`receive_new_table_${this.schema_id}`, (data: any) => {
       this.toClass(CreateTable, data);
     });
   }
 
   onDeletedSchema(){
-    this.socket.on("receive_deleted_table", (data: any) => {
+    this.socket.on(`receive_deleted_table_${this.schema_id}`, (data: any) => {
       this.toClass(DeleteTable, data);
     });
   }
 
   onUpdatedSchema(){
-    this.socket.on("receive_updated_table", (data: any) => {
+    this.socket.on(`receive_updated_table_${this.schema_id}`, (data: any) => {
       this.toClass(UpdateTable, data);
     });
   }
 
   onMovedSchema(){
-    this.socket.on("receive_moved_table", (data: any) => {
+    this.socket.on(`receive_moved_table_${this.schema_id}`, (data: any) => {
       this.toClass(MoveTable, data);
     });
   }

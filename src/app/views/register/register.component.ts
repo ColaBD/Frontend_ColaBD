@@ -8,6 +8,7 @@ import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../core/auth/services/auth.service';
+import { TokenVM } from '../../core/auth/model/token.view-model';
 
 @Component({
   selector: 'app-register',
@@ -47,15 +48,15 @@ export class RegisterComponent {
 
       return;
     }
-    this.processarSucesso();
 
     this.authService.registrar(this.form.value).subscribe({
-      next: (res) => this.processarSucesso(),
+      next: (res) => this.processarSucesso(res),
       error: (err) => this.processarFalha(err)
     })
   }
 
-  processarSucesso() {
+  processarSucesso(res: TokenVM) {
+    console.log(JSON.stringify(res))
     this.toastrService.success(
       `Registro realizado com sucesso`,
       'Sucesso'
