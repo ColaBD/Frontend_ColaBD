@@ -273,8 +273,8 @@ export class SchemaService {
       const currentTables = this.tables.getValue();
       const currentRelationships = this.relationships.getValue();
       
-      const jointjsData = this.jointJSParser.convertToJointJSFormat(currentTables, currentRelationships);
-      
+      const jointjsData: JointJSGraph = this.jointJSParser.convertToJointJSFormat(currentTables, currentRelationships);
+
       return jointjsData;
     } catch (error) {
       console.error('Failed to export schema to JointJS format:', error);

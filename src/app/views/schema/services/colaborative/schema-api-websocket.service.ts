@@ -2,8 +2,7 @@ import { Injectable, OnInit } from '@angular/core';
 import { io, Socket } from 'socket.io-client'
 import { LocalStorageService } from '../../../../core/auth/services/local-storage.service';
 import { Subject } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
-import { BaseTable, CreateTable, DeleteTable, MoveTable, UpdateTable } from '../../models/schema-colab.models';
+import { BaseElement, CreateTable, DeleteTable, MoveTable, UpdateTable } from '../../models/schema-colab.models';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +16,7 @@ export class SchemaApiWebsocketService {
   });
   private schema_id: string | null = "";
 
-  constructor(private localStorageService: LocalStorageService, private route: ActivatedRoute) { }
+  constructor(private localStorageService: LocalStorageService) { }
 
   connectWS(schemaId: string | null){
     const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
@@ -40,8 +39,8 @@ export class SchemaApiWebsocketService {
   }
 
   //Envia atualização do schema para o servidor
-  atualizacaoSchema(schema_update: BaseTable, channel_emit: string) {
-    console.log('Enviando atualização do schema via WebSocket:', schema_update);
+  atualizacaoSchema(schema_update: BaseElement, channel_emit: string) {
+    console.log('Enviando atualização do schema via WebSocket');
 
     const endpoint_ws = `${channel_emit}_${this.schema_id}`;
     this.socket.emit(endpoint_ws, schema_update);
@@ -49,18 +48,18 @@ export class SchemaApiWebsocketService {
 
   private toClass<T extends object>(cls: new () => T, data: any): void {
     const received_data = Object.assign(new cls(), data);
-    console.log("📩 Recebido schema atualizado:", received_data);
+    console.log("📩 Recebido schema atualizado", received_data);
     this.schemaAtualizadoSubject.next(received_data);
   }
   
   onCreatedSchema(){
-    this.socket.on(`receive_new_table_${this.schema_id}`, (data: any) => {
+    this.socket.on(`receive_new_element_${this.schema_id}`, (data: any) => {
       this.toClass(CreateTable, data);
     });
   }
 
   onDeletedSchema(){
-    this.socket.on(`receive_deleted_table_${this.schema_id}`, (data: any) => {
+    this.socket.on(`receive_deleted_element_${this.schema_id}`, (data: any) => {
       this.toClass(DeleteTable, data);
     });
   }
