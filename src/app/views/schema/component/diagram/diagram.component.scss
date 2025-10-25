@@ -204,4 +204,220 @@
       stroke: rgba(21, 48, 58, 0.1);
     }
   }
+
+  // Lock indicator styles
+  .element-lock-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 4px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-size: 11px;
+    z-index: 100;
+
+    &.locked-by-other {
+      background: rgba(220, 53, 69, 0.1);
+      border: 1px solid #dc3545;
+      color: #dc3545;
+
+      .lock-icon {
+        color: #dc3545;
+      }
+    }
+
+    &.locked-by-me {
+      background: rgba(0, 123, 255, 0.1);
+      border: 1px solid #007bff;
+      color: #007bff;
+
+      .lock-icon {
+        color: #007bff;
+      }
+    }
+
+    .lock-icon {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .user-name {
+      font-weight: 600;
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lock-timer {
+      font-size: 10px;
+      opacity: 0.8;
+    }
+  }
+
+  // Locked element visual styles
+  .joint-element.element-locked-other {
+    opacity: 0.6;
+    pointer-events: none;
+
+    rect {
+      stroke: #dc3545 !important;
+      stroke-width: 2.5 !important;
+      stroke-dasharray: 3, 3;
+    }
+  }
+
+  .joint-element.element-locked-me {
+    opacity: 1;
+
+    rect {
+      stroke: #007bff !important;
+      stroke-width: 2.5 !important;
+    }
+
+    &:hover rect {
+      stroke: #0056b3 !important;
+      stroke-width: 3 !important;
+    }
+  }
+
+  .joint-element.element-unlocked {
+    opacity: 1;
+
+    rect {
+      stroke: none;
+      stroke-width: 1;
+    }
+  }
+
+  // Lock notification/toast styles
+  .lock-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    z-index: 2000;
+    animation: slideIn 0.3s ease-out;
+
+    &.lock-success {
+      border-left: 4px solid #28a745;
+      color: #155724;
+
+      .icon {
+        color: #28a745;
+      }
+    }
+
+    &.lock-failed {
+      border-left: 4px solid #dc3545;
+      color: #721c24;
+
+      .icon {
+        color: #dc3545;
+      }
+    }
+
+    &.lock-info {
+      border-left: 4px solid #17a2b8;
+      color: #0c5460;
+
+      .icon {
+        color: #17a2b8;
+      }
+    }
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .icon {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .message {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+    }
+
+    .close-btn {
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  }
+
+  // Remote cursor styles
+  .remote-cursors-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .remote-cursor {
+    position: fixed;
+    width: 20px;
+    height: 28px;
+    pointer-events: none;
+    z-index: 1000;
+
+    svg {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+
+    .cursor-label {
+      position: absolute;
+      top: 28px;
+      left: 0;
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      margin-top: 2px;
+    }
+  }
 } 

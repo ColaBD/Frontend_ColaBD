@@ -24,6 +24,11 @@ export class LocalStorageService {
     return JSON.parse(jsonString) as TokenVM;
   }
 
+  public getToken(): string {
+    const token = this.obterDadosLocaisSalvos()?.access_token;
+    return token || '';
+  }
+
   public limparDadosLocais(){
     localStorage.setItem(this.chaveLocalStorage, '');
   }

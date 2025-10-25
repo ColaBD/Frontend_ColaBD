@@ -8,7 +8,10 @@ import { SchemaService, TableDefinition, Relationship, RelationshipType } from '
 import { JointJSCell, JointJSGraph } from '../../services/jointjs-data.interface';
 import { Subject, Subscription } from 'rxjs';
 import { SchemaApiWebsocketService } from '../../services/colaborative/schema-api-websocket.service';
+import { SchemaCursorService } from '../../services/schema-cursor.service';
+import { LocalStorageService } from '../../../../core/auth/services/local-storage.service';
 import { ActivatedRoute } from '@angular/router';
+import { jwtDecode } from 'jwt-decode';
 import { BaseElement, CreateTable, DeleteTable, MoveTable, UpdateTable, TableAttrs, LinkTable, TextLinkLabelAttrs, TextUpdateLinkLabelAttrs } from '../../models/schema-colab.models';
 
 // Make jQuery available to JointJS
@@ -39,6 +42,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   indexTablesLoaded = 1; 
   qtTablesLoaded = 0;
   lockAction = false;
+  isDestroying: boolean = false; // Flag para ignorar salvamentos durante destruição
   
   private readonly minScale: number = 0.4;
   private readonly scaleStep: number = 0.1;
@@ -59,6 +63,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private resizeTimeout: any;
   private windowResizeTimeout: any;
   isLinkingMode: boolean = false;
+  private remoteCursorsContainer: SVGGElement | null = null;
+  private remoteCursorsMap = new Map<string, { cursor: SVGElement; name: SVGElement }>();
 
   // Relationship dropdown properties
   showRelationshipDropdown: boolean = false;
@@ -68,11 +74,19 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   constructor(
     private schemaService: SchemaService, 
     private socketService: SchemaApiWebsocketService,
+    private cursorService: SchemaCursorService,
+    private localStorageService: LocalStorageService,
     private route: ActivatedRoute
   ) { }
 
   ngOnInit(): void {
     this.socketService.connectWS(this.route.snapshot.paramMap.get("id"));
+    const token = this.localStorageService.getToken();
+    const decodedToken: any = jwtDecode(token);
+    const userId = decodedToken.sub || decodedToken.user_id || 'unknown_user';
+    const userEmail = decodedToken.email || decodedToken.user_name || 'Usuário';
+    const schemaId = this.route.snapshot.paramMap.get("id");
+    this.cursorService.initialize(schemaId, userId, userEmail);
 
     this.subscription.add(
       this.socketService.schemaAtualizadoSubject.subscribe((received_ws_data) => {
@@ -88,14 +102,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       this.subscribeToTableChanges();
       this.subscribeToRelationshipChanges();
       this.setupGraphChangeListener();
+      this.subscribeToRemoteCursors();
+      this.setupMouseTracking();
     }, 0);
   }
 
   ngOnDestroy(): void {
+    this.isDestroying = true; // Set the flag FIRST
+    
+    // Desregistrar listeners do graph ANTES de fazer clear
+    if (this.graph) {
+      this.graph.off(); // Remove todos os listeners do graph
+    }
+    
     this.subscription.unsubscribe();
     this.dadosRecebidos = false;
     this.indexTablesLoaded = 1; 
     this.qtTablesLoaded = 0;
+
+    // Clean up cursor service
+    this.cursorService.destroy();
 
     // Clear any pending timeouts
     if (this.resizeTimeout) {
@@ -152,12 +178,12 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private buildNewElementReceived(receivedData: any): JointJSCell{
     if(receivedData.type == "standard.Rectangle"){
       return {
-        id: receivedData.id,
-        type: receivedData.type,
-        position: receivedData.position,
-        size: receivedData.size,
-        attrs: {...receivedData.attrs},
-      }
+      id: receivedData.id,
+      type: receivedData.type,
+      position: receivedData.position,
+      size: receivedData.size,
+      attrs: {...receivedData.attrs},
+    }
     }
 
     return {
@@ -234,7 +260,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       const current_cells = this.schemaService.exportToJointJSData().cells;
 
       const updated_cells = this.tableAction(current_cells, received_ws_data);
-
+      
       const graph: JointJSGraph = { cells: updated_cells };
 
       this.schemaService.loadFromJointJSData(graph);
@@ -327,7 +353,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private addCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
     const element_id = this.getElementId(cell.id.toString());
     const new_element = this.getElementById(element_id);
@@ -340,7 +368,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private removeCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
     const element_id = this.getElementId(cell.id.toString());
 
@@ -369,7 +399,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private updateElementAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
     const element_id = this.getElementId(cell.id.toString());
     const new_attrs = this.getElementById(element_id);
@@ -382,7 +414,9 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private moveCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
     const element_id = this.getElementId(cell.id.toString());
     const pos_x = cell.position().x;
@@ -424,15 +458,15 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       if(!this.dadosRecebidos){
         console.log('Atualizando célula e enviando via WebSocket', JSON.stringify(cell));
         this.updateElementAndSend(cell);
-      }
+        }
     });
-
+        
     this.graph.on('change:position', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
-        this.moveCellAndSend(cell);
-      }
+          this.moveCellAndSend(cell);
+        }
 
-      this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
+        this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
     });
   }
 
@@ -714,6 +748,116 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // Add document click listener to close dropdown when clicking outside
     document.addEventListener('click', this.handleDocumentClick);
+  }
+
+  private subscribeToRemoteCursors(): void {
+    this.subscription.add(
+      this.cursorService.getCursors().subscribe((cursors) => {
+        this.updateRemoteCursors(cursors);
+      })
+    );
+  }
+
+  private setupMouseTracking(): void {
+    if (!this.diagramElement?.nativeElement) {
+      return;
+    }
+
+    const diagramElement = this.diagramElement.nativeElement;
+
+    diagramElement.addEventListener('mousemove', (event: MouseEvent) => {
+      const rect = diagramElement.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      this.cursorService.updateCursor(x, y);
+    });
+
+    diagramElement.addEventListener('mouseleave', () => {
+      this.cursorService.leaveDiagram();
+    });
+  }
+
+  private updateRemoteCursors(cursors: Map<string, any>): void {
+    if (!this.paper) {
+      return;
+    }
+
+    if (!this.remoteCursorsContainer) {
+      this.remoteCursorsContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      this.remoteCursorsContainer.setAttribute('id', 'remote-cursors-container');
+      this.paper.svg.appendChild(this.remoteCursorsContainer);
+    }
+
+    const currentUserIds = new Set(this.remoteCursorsMap.keys());
+    const newUserIds = new Set(cursors.keys());
+
+    currentUserIds.forEach((userId) => {
+      if (!newUserIds.has(userId)) {
+        const cursor = this.remoteCursorsMap.get(userId);
+        if (cursor) {
+          cursor.cursor.remove();
+          cursor.name.remove();
+          this.remoteCursorsMap.delete(userId);
+        }
+      }
+    });
+
+    // Update or create cursors
+    cursors.forEach((cursorData, userId) => {
+      let cursorGroup = this.remoteCursorsMap.get(userId);
+
+      if (!cursorGroup) {
+        // Create new cursor group
+        const cursor = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        cursor.setAttribute('id', `cursor-${userId}`);
+        cursor.setAttribute('style', 'transition: transform 0.03s ease-out');
+
+        // Create cursor pointer (SVG path representing an arrow/pointer) - MENOR
+        const pointer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pointer.setAttribute('d', 'M0,0 L0,12 L3,9 L6,14 L8,13 L5,8 L9,8 Z');
+        pointer.setAttribute('fill', cursorData.color);
+        pointer.setAttribute('opacity', '0.9');
+        cursor.appendChild(pointer);
+
+        // Create user name label - com background
+        const nameBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        nameBg.setAttribute('x', '0');
+        nameBg.setAttribute('y', '14');
+        nameBg.setAttribute('width', '120');
+        nameBg.setAttribute('height', '16');
+        nameBg.setAttribute('fill', cursorData.color);
+        nameBg.setAttribute('opacity', '0.2');
+        nameBg.setAttribute('rx', '3');
+        cursor.appendChild(nameBg);
+
+        const name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        name.setAttribute('x', '3');
+        name.setAttribute('y', '25');
+        name.setAttribute('font-size', '11');
+        name.setAttribute('font-weight', 'bold');
+        name.setAttribute('fill', cursorData.color);
+        name.setAttribute('font-family', 'Arial, sans-serif');
+        name.setAttribute('pointer-events', 'none');
+        name.textContent = cursorData.user_name;
+
+        this.remoteCursorsContainer?.appendChild(cursor);
+        this.remoteCursorsContainer?.appendChild(name);
+
+        cursorGroup = { cursor, name };
+        this.remoteCursorsMap.set(userId, cursorGroup);
+      }
+
+      // Converter coordenadas de página para coordenadas do SVG
+      const paperRect = this.paper.svg.getBoundingClientRect();
+      const svgX = cursorData.x - paperRect.left;
+      const svgY = cursorData.y - paperRect.top;
+
+      // Update position
+      cursorGroup.cursor.setAttribute('transform', `translate(${svgX}, ${svgY})`);
+      cursorGroup.name.setAttribute('x', (svgX + 3).toString());
+      cursorGroup.name.setAttribute('y', (svgY + 25).toString());
+    });
   }
 
   private setupPanning(): void {
@@ -1513,10 +1657,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  exportToJointJSData(): JointJSGraph {
-    return this.schemaService.exportToJointJSData();
-  }
-
   exportToJSONString(): string {
     return this.schemaService.exportToJSONString();
   }
@@ -1622,40 +1762,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     } else {
       console.warn('Cannot resize canvas: invalid dimensions', { parentWidth, parentHeight });
     }
-  }
-
-  debugCanvasState(): void {
-    console.log('=== Canvas Debug Info ===');
-    console.log('JointJS initialized:', this.isJointJSInitialized());
-    
-    if (this.diagramElement?.nativeElement) {
-      const element = this.diagramElement.nativeElement;
-      console.log('Container dimensions:', {
-        offsetWidth: element.offsetWidth,
-        offsetHeight: element.offsetHeight,
-        clientWidth: element.clientWidth,
-        clientHeight: element.clientHeight,
-        scrollWidth: element.scrollWidth,
-        scrollHeight: element.scrollHeight
-      });
-      
-      const computedStyle = window.getComputedStyle(element);
-      console.log('Container computed style:', {
-        width: computedStyle.width,
-        height: computedStyle.height,
-        display: computedStyle.display,
-        position: computedStyle.position,
-        visibility: computedStyle.visibility
-      });
-    }
-    
-    if (this.paper) {
-      const paperSize = this.paper.getComputedSize();
-      console.log('Paper dimensions:', paperSize);
-      console.log('Current scale:', this.currentScale);
-    }
-    
-    console.log('=== End Debug Info ===');
   }
 
   private isJointJSInitialized(): boolean {
@@ -1831,8 +1937,4 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  async takeCleanScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
-    // Deprecated - use takeScreenshot instead
-    return this.takeScreenshot(filename);
-  }
 } 

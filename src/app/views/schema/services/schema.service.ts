@@ -62,15 +62,6 @@ export class SchemaService {
     private jointJSParser: JointJSParserService,
     private backendService: SchemaBackendService
   ) {
-    // // Initialize with default table for testing
-    // this.addTable({
-    //   id: this.generateId(),
-    //   name: 'Tabela 1',
-    //   columns: [
-    //     { name: 'ID', type: 'INT', isPrimaryKey: true, isNotNull: true, isUnique: true }
-    //   ],
-    //   position: { x: 100, y: 100 }
-    // });
   }
   
   // Get all tables as observable
@@ -307,46 +298,6 @@ export class SchemaService {
       console.error('Failed to export to JSON string:', error);
       throw error;
     }
-  }
-
-  // Backend Integration Methods
-  loadSchemaFromBackend(schemaId?: string): Observable<void> {
-    return new Observable(observer => {
-      this.backendService.loadSchema(schemaId).subscribe({
-        next: (jointjsData) => {
-          try {
-            this.loadFromJointJSData(jointjsData);
-            observer.next();
-            observer.complete();
-          } catch (error) {
-            observer.error(error);
-          }
-        },
-        error: (error) => observer.error(error)
-      });
-    });
-  }
-
-  saveSchemaToBackend(schemaId?: string, canvas?: HTMLCanvasElement): Observable<{ id: string, message: string }> {
-    const jointjsData = this.exportToJointJSData();
-    return this.backendService.saveSchema(jointjsData, schemaId, canvas);
-  }
-
-  loadMockSchema(): Observable<void> {
-    return new Observable(observer => {
-      this.backendService.loadMockSchema().subscribe({
-        next: (jointjsData) => {
-          try {
-            this.loadFromJointJSData(jointjsData);
-            observer.next();
-            observer.complete();
-          } catch (error) {
-            observer.error(error);
-          }
-        },
-        error: (error) => observer.error(error)
-      });
-    });
   }
 
   // Generate a unique ID

@@ -9,6 +9,9 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { SchemaService, TableDefinition, TableColumn, TableIndex } from '../../services/schema.service';
+import { SchemaLockService } from '../../services/schema-lock.service';
+import { SchemaApiWebsocketService } from '../../services/colaborative/schema-api-websocket.service';
+import { UpdateTable } from '../../models/schema-colab.models';
 import { JointJSGraph } from '../../services/jointjs-data.interface';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
@@ -36,8 +39,13 @@ export class TableEditorComponent implements OnInit {
   selectedTabIndex = 0; // 0 = Tables, 1 = Indexes
   dataTypes = ['INT', 'VARCHAR', 'CHAR', 'TEXT', 'FLOAT', 'DOUBLE', 'BOOLEAN', 'DATE', 'TIMESTAMP'];
   indexTypes = ['BTREE', 'HASH', 'FULLTEXT', 'SPATIAL'];
+  private currentlyEditingTableId: string | null = null;
   
-  constructor(private schemaService: SchemaService) { }
+  constructor(
+    private schemaService: SchemaService,
+    private lockService: SchemaLockService,
+    private socketService: SchemaApiWebsocketService
+  ) { }
 
   get totalIndexesCount(): number {
     return this.tables.reduce((total, table) => total + (table.indices?.length || 0), 0);
@@ -91,6 +99,8 @@ export class TableEditorComponent implements OnInit {
 
   updateTable(table: TableDefinition): void {
     this.schemaService.updateTable(table);
+    // Emitir para backend via WebSocket
+    this.sendTableUpdateViaWebSocket(table);
   }
 
   onTypeChange(table: TableDefinition, column: TableColumn): void {
@@ -123,6 +133,8 @@ export class TableEditorComponent implements OnInit {
 
   removeTable(tableId: string, index: number): void {
     this.schemaService.removeTable(tableId);
+    console.log('📤 Removendo tabela:', tableId);
+    this.socketService.atualizacaoSchema({ id: tableId } as any, 'delete_table');
   }
 
   togglePrimaryKey(table: TableDefinition, columnIndex: number): void {
@@ -325,5 +337,43 @@ export class TableEditorComponent implements OnInit {
       column: column,
       type: 'table-column'
     };
+  }
+
+  // Lock management methods
+  onTableExpanded(table: TableDefinition): void {
+    // Adquire lock quando abre edição
+    if (this.currentlyEditingTableId && this.currentlyEditingTableId !== table.id) {
+      // Se tinha outra tabela aberta, libera o lock dela
+      this.lockService.releaseLock(this.currentlyEditingTableId);
+      console.log(`🔓 Lock liberado: ${this.currentlyEditingTableId}`);
+    }
+
+    // Adquire lock da nova tabela
+    this.currentlyEditingTableId = table.id;
+    this.lockService.acquireLock(table.id);
+    console.log(`🔒 Lock adquirido ao editar: ${table.id} (${table.name})`);
+  }
+
+  onTableCollapsed(table: TableDefinition): void {
+    // Libera lock quando fecha edição
+    if (this.currentlyEditingTableId === table.id) {
+      this.lockService.releaseLock(table.id);
+      this.currentlyEditingTableId = null;
+      console.log(`🔓 Lock liberado ao fechar: ${table.id} (${table.name})`);
+    }
+  }
+
+  private sendTableUpdateViaWebSocket(table: TableDefinition): void {
+    const update: UpdateTable = {
+      id: table.id,
+      type: "standard.Rectangle",
+      attrs: {
+        name: table.name,
+        columns: table.columns,
+        indices: table.indices
+      }
+    };
+    console.log('📤 Enviando atualização de tabela:', update);
+    this.socketService.atualizacaoSchema(update, 'update_table_atributes');
   }
 } 

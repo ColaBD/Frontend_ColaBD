@@ -203,11 +203,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  duplicateSchema(schema: SchemaListItem) {
-    this.activeMenuId = null;
-    alert('Funcionalidade de duplicar em desenvolvimento');
-  }
-
   deleteSchema(schema: SchemaListItem) {
     this.activeMenuId = null;
 

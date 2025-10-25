@@ -19,7 +19,9 @@
           <div class="tables-list" cdkScrollable>
             @for (table of tables; track table.id; let i = $index) {
               <div class="table-item">
-                <mat-expansion-panel>
+                <mat-expansion-panel
+                  (opened)="onTableExpanded(table)"
+                  (closed)="onTableCollapsed(table)">
                   <mat-expansion-panel-header>
                     <mat-panel-title>
                       {{table.name}}

@@ -9,8 +9,8 @@ import { BaseElement, CreateTable, DeleteTable, MoveTable, UpdateTable } from '.
 })
 export class SchemaApiWebsocketService {
   public schemaAtualizadoSubject = new Subject<any>();
-  private baseUrl: string = "https://backend-colabd.onrender.com";
-  private socket: Socket = io(this.baseUrl, {
+  private baseUrl: string = "https://develop-colabd.onrender.com";
+  public socket: Socket = io(this.baseUrl, {
     transports: ["websocket"],
     autoConnect: false // evita conectar sem auth
   });
@@ -20,7 +20,7 @@ export class SchemaApiWebsocketService {
 
   connectWS(schemaId: string | null){
     const token = this.localStorageService.obterDadosLocaisSalvos()?.access_token;
-    
+
     // aqui é chamado a função connect do backend
     this.socket.auth = {
       token: token,
@@ -30,12 +30,27 @@ export class SchemaApiWebsocketService {
     this.schema_id = schemaId;
     
     this.socket.connect();
+    
+    // Log quando conectado
+    this.socket.on('connect', () => {
+      console.log(`✅ WebSocket CONECTADO com ID: ${this.socket.id}`);
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log(`❌ WebSocket DESCONECTADO`);
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.log(`⚠️ WebSocket ERRO DE CONEXÃO:`, error);
+    });
 
     // necessário para chamar as funções de escuta
     this.onCreatedSchema();
     this.onUpdatedSchema();
     this.onDeletedSchema();
     this.onMovedSchema();
+    this.onCursorMoved();
+    this.onCursorLeaved();
   }
 
   //Envia atualização do schema para o servidor
@@ -73,6 +88,18 @@ export class SchemaApiWebsocketService {
   onMovedSchema(){
     this.socket.on(`receive_moved_table_${this.schema_id}`, (data: any) => {
       this.toClass(MoveTable, data);
+    });
+  }
+
+  onCursorMoved(){
+    this.socket.on(`cursor_update_${this.schema_id}`, (data: any) => {
+      // O serviço de cursor vai receber esse evento direto do socket
+    });
+  }
+
+  onCursorLeaved(){
+    this.socket.on(`cursor_leave_${this.schema_id}`, (data: any) => {
+      // O serviço de cursor vai receber esse evento direto do socket
     });
   }
 }
