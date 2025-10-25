@@ -166,7 +166,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       cells = this.manipulateDeleteElement(cells, receivedData);
     } 
     else if (receivedData instanceof UpdateTable || receivedData instanceof TextUpdateLinkLabelAttrs) {
-      console.log('qqqqqqqqqqqqqq')
       cells = this.manipulateUpdateElement(cells, receivedData);
     } 
     else if (receivedData instanceof MoveTable) {
@@ -221,7 +220,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     if(!item) return cells;
 
     if (item.type == "standard.Link"){ 
-      console.log('Atualizando rótulo do link via WebSocket');
       item.labels = item.labels || [];
 
       item.labels[0] = {
@@ -440,7 +438,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private setupGraphChangeListener() {
     this.graph.on('add', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
-        console.log('Adicionando célula e enviando via WebSocket');
         this.addCellAndSend(cell);
       }
 
@@ -456,7 +453,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     this.graph.on('change:attrs', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos){
-        console.log('Atualizando célula e enviando via WebSocket', JSON.stringify(cell));
         this.updateElementAndSend(cell);
         }
     });
@@ -688,7 +684,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                   type: RelationshipType.OneToMany
                 });
               }
-            } else {
+            } 
+            else {
               console.log('Source or target table not found');
             }
           }
