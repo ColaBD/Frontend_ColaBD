@@ -166,6 +166,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       cells = this.manipulateDeleteElement(cells, receivedData);
     } 
     else if (receivedData instanceof UpdateTable || receivedData instanceof TextUpdateLinkLabelAttrs) {
+      console.log('qqqqqqqqqqqqqq')
       cells = this.manipulateUpdateElement(cells, receivedData);
     } 
     else if (receivedData instanceof MoveTable) {
@@ -216,11 +217,10 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private manipulateUpdateElement(cells: JointJSCell[] ,receivedData: UpdateTable | TextUpdateLinkLabelAttrs): JointJSCell[] {
     const item = cells.find(cell => cell.id.includes(receivedData.id));
-
+    
     if(!item) return cells;
 
-
-    if (receivedData.type == "standard.Link"){ 
+    if (item.type == "standard.Link"){ 
       console.log('Atualizando rótulo do link via WebSocket');
       item.labels = item.labels || [];
 
