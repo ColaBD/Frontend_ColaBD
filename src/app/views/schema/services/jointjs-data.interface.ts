@@ -5,6 +5,10 @@ export interface JointJSGraph {
   cells: JointJSCell[];
 }
 
+export interface RouterConnector{
+  name: string;
+}
+
 export interface JointJSCell {
   type: string;
   id: string;

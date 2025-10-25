@@ -8,8 +8,11 @@ import { SchemaService, TableDefinition, Relationship, RelationshipType } from '
 import { JointJSCell, JointJSGraph } from '../../services/jointjs-data.interface';
 import { Subject, Subscription } from 'rxjs';
 import { SchemaApiWebsocketService } from '../../services/colaborative/schema-api-websocket.service';
+import { SchemaCursorService } from '../../services/schema-cursor.service';
+import { LocalStorageService } from '../../../../core/auth/services/local-storage.service';
 import { ActivatedRoute } from '@angular/router';
-import { BaseTable, CreateTable, DeleteTable, MoveTable, UpdateTable, TableAttrs } from '../../models/schema-colab.models';
+import { jwtDecode } from 'jwt-decode';
+import { BaseElement, CreateTable, DeleteTable, MoveTable, UpdateTable, TableAttrs, LinkTable, TextLinkLabelAttrs, TextUpdateLinkLabelAttrs } from '../../models/schema-colab.models';
 
 // Make jQuery available to JointJS
 (window as any).$ = (window as any).jQuery = $;
@@ -38,6 +41,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   dadosRecebidos: boolean = false;
   indexTablesLoaded = 1; 
   qtTablesLoaded = 0;
+  lockAction = false;
+  isDestroying: boolean = false; // Flag para ignorar salvamentos durante destruição
   
   private readonly minScale: number = 0.4;
   private readonly scaleStep: number = 0.1;
@@ -58,6 +63,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private resizeTimeout: any;
   private windowResizeTimeout: any;
   isLinkingMode: boolean = false;
+  private remoteCursorsContainer: SVGGElement | null = null;
+  private remoteCursorsMap = new Map<string, { cursor: SVGElement; name: SVGElement }>();
 
   // Relationship dropdown properties
   showRelationshipDropdown: boolean = false;
@@ -67,11 +74,19 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   constructor(
     private schemaService: SchemaService, 
     private socketService: SchemaApiWebsocketService,
+    private cursorService: SchemaCursorService,
+    private localStorageService: LocalStorageService,
     private route: ActivatedRoute
   ) { }
 
   ngOnInit(): void {
     this.socketService.connectWS(this.route.snapshot.paramMap.get("id"));
+    const token = this.localStorageService.getToken();
+    const decodedToken: any = jwtDecode(token);
+    const userId = decodedToken.sub || decodedToken.user_id || 'unknown_user';
+    const userEmail = decodedToken.email || decodedToken.user_name || 'Usuário';
+    const schemaId = this.route.snapshot.paramMap.get("id");
+    this.cursorService.initialize(schemaId, userId, userEmail);
 
     this.subscription.add(
       this.socketService.schemaAtualizadoSubject.subscribe((received_ws_data) => {
@@ -87,13 +102,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       this.subscribeToTableChanges();
       this.subscribeToRelationshipChanges();
       this.setupGraphChangeListener();
+      this.subscribeToRemoteCursors();
+      this.setupMouseTracking();
     }, 0);
   }
 
   ngOnDestroy(): void {
+    this.isDestroying = true; // Set the flag FIRST
+    
+    // Desregistrar listeners do graph ANTES de fazer clear
+    if (this.graph) {
+      this.graph.off(); // Remove todos os listeners do graph
+    }
+    
     this.subscription.unsubscribe();
     this.dadosRecebidos = false;
     this.indexTablesLoaded = 1; 
+    this.qtTablesLoaded = 0;
+
+    // Clean up cursor service
+    this.cursorService.destroy();
 
     // Clear any pending timeouts
     if (this.resizeTimeout) {
@@ -130,15 +158,15 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  private tableAction(cells: JointJSCell[] ,receivedData: BaseTable) {
-    if (receivedData instanceof CreateTable) {
-      cells = this.manipulateCreateTable(cells, receivedData);
+  private tableAction(cells: JointJSCell[] ,receivedData: BaseElement) {
+    if (receivedData instanceof CreateTable || receivedData instanceof LinkTable) {
+      cells = this.manipulateCreateElement(cells, receivedData);
     } 
     else if (receivedData instanceof DeleteTable) {
-      cells = this.manipulateDeleteTable(cells, receivedData);
+      cells = this.manipulateDeleteElement(cells, receivedData);
     } 
-    else if (receivedData instanceof UpdateTable) {
-      cells = this.manipulateUpdateTable(cells, receivedData);
+    else if (receivedData instanceof UpdateTable || receivedData instanceof TextUpdateLinkLabelAttrs) {
+      cells = this.manipulateUpdateElement(cells, receivedData);
     } 
     else if (receivedData instanceof MoveTable) {
       cells = this.manipulateMoveTable(cells, receivedData);
@@ -147,20 +175,36 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     return cells;
   }
 
-  private manipulateCreateTable(cells: JointJSCell[] ,receivedData: CreateTable): JointJSCell[] {
-    const jointJsCell: JointJSCell = {
+  private buildNewElementReceived(receivedData: any): JointJSCell{
+    if(receivedData.type == "standard.Rectangle"){
+      return {
       id: receivedData.id,
       type: receivedData.type,
       position: receivedData.position,
       size: receivedData.size,
       attrs: {...receivedData.attrs},
     }
-    cells.push(jointJsCell); // copia os dados da classe para objeto literal
+    }
+
+    return {
+      id: receivedData.id,
+      type: receivedData.type,
+      source: {id: receivedData.source?.id || ''},
+      target: {id: receivedData.target?.id || ''},
+      labels: {...receivedData.labels},
+      attrs: {...receivedData.attrs}
+    }
+  }
+
+  private manipulateCreateElement(cells: JointJSCell[] ,receivedData: CreateTable | LinkTable): JointJSCell[] {
+    const jointJsCell: JointJSCell = this.buildNewElementReceived(receivedData);
+
+    cells.push(jointJsCell); 
 
     return cells;
   }
 
-  private manipulateDeleteTable(cells: JointJSCell[] ,receivedData: DeleteTable): JointJSCell[] {
+  private manipulateDeleteElement(cells: JointJSCell[] ,receivedData: DeleteTable): JointJSCell[] {
     const index = cells.findIndex(item => item.id.includes(receivedData.id));
 
     if (index !== -1) {
@@ -170,10 +214,26 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     return cells;
   }
 
-  private manipulateUpdateTable(cells: JointJSCell[] ,receivedData: UpdateTable): JointJSCell[] {
+  private manipulateUpdateElement(cells: JointJSCell[] ,receivedData: UpdateTable | TextUpdateLinkLabelAttrs): JointJSCell[] {
     const item = cells.find(cell => cell.id.includes(receivedData.id));
-    if (item) {
-      item.attrs = {...receivedData.attrs};
+
+    if(!item) return cells;
+
+
+    if (receivedData.type == "standard.Link"){ 
+      console.log('Atualizando rótulo do link via WebSocket');
+      item.labels = item.labels || [];
+
+      item.labels[0] = {
+        attrs: {
+          text: {
+            text: 'text' in receivedData ? receivedData.text : '1:n'
+          }
+        }
+      };
+    }
+    else if (receivedData.type == "standard.Rectangle" && receivedData instanceof UpdateTable){
+      item.attrs = { ...receivedData.attrs };
     }
 
     return cells;
@@ -182,18 +242,20 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private manipulateMoveTable(cells: JointJSCell[] ,receivedData: MoveTable): JointJSCell[] {
     const item = cells.find(cell => cell.id.includes(receivedData.id));
     if (item) {
+      const posReceivedData = receivedData.position;
+
       if (!item.position) {
         item.position = { x: 0, y: 0 };
       }
 
-      item.position.x = receivedData.position.x;
-      item.position.y = receivedData.position.y;
+      item.position.x = posReceivedData.x;
+      item.position.y = posReceivedData.y;
     }
 
     return cells;
   }
 
-  private loadJointJSFromWS(received_ws_data: BaseTable): void {
+  private loadJointJSFromWS(received_ws_data: BaseElement): void {
     try {
       const current_cells = this.schemaService.exportToJointJSData().cells;
 
@@ -211,7 +273,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  private sendWSRequest(data: BaseTable, channel: string) {
+  private sendWSRequest(data: BaseElement, channel: string) {
     this.socketService.atualizacaoSchema(data, channel);
 
     setTimeout(() => { 
@@ -219,79 +281,156 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }, 3000);
   }
 
-  private get_table_by_id(table_id: string){
-    return this.schemaService.exportToJointJSData().cells.filter((tabela) => tabela.id.includes(table_id))[0];
+  private getElementById(element_id: string){
+    return this.schemaService.exportToJointJSData().cells.filter((element) => element.id.includes(element_id))[0];
+  }
+
+  private getElementId(cell_id: string | undefined): string {
+    if(!cell_id) {
+      return '';
+    }
+
+    return cell_id.replace(/(element_table_|element_|table_|rel_link_|rel_|link_)/g, '');
+  }
+
+  private buildLinkAttrs(new_element: JointJSCell){
+    return {
+      ".connection": {
+        stroke: new_element?.[".connection"]?.["stroke"] ?? "#007bff", // azul padrão
+        strokeWidth: new_element?.[".connection"]?.["strokeWidth"] ?? 2,
+        "pointer-events": new_element?.[".connection"]?.["pointer-events"] ?? "visibleStroke",
+      },
+      ".marker-source": {
+        d: new_element?.[".marker-source"]?.["d"] ?? "M 10 0 L 0 5 L 10 10 z", // triângulo padrão
+        fill: new_element?.[".marker-source"]?.["fill"] ?? "#007bff",
+        stroke: new_element?.[".marker-source"]?.["stroke"] ?? "#007bff",
+        "stroke-width": new_element?.[".marker-source"]?.["stroke-width"] ?? 1,
+      },
+      ".marker-target": {
+        d: new_element?.[".marker-target"]?.["d"] ?? "M 10 0 L 0 5 L 10 10 z", // mesmo triângulo
+        fill: new_element?.[".marker-target"]?.["fill"] ?? "#007bff",
+        stroke: new_element?.[".marker-target"]?.["stroke"] ?? "#007bff",
+        "stroke-width": new_element?.[".marker-target"]?.["stroke-width"] ?? 1,
+      }
+    }
+  }
+
+  private buildLinkToSend(new_element: JointJSCell, element_id: string): LinkTable {
+    const labels = new_element.labels ?? [];
+  
+    const new_labels = labels.map(l => ({
+      attrs: {
+        text: { ...l.attrs?.text },
+        rect: { ...l.attrs?.rect },
+      },
+      position: typeof l.position === 'number' ? l.position : 0.5
+    }));
+  
+    return {
+      id: element_id,
+      type: new_element.type,
+      source: { id: this.getElementId(new_element.source?.id) },
+      target: { id: this.getElementId(new_element.target?.id) },
+      labels: new_labels,
+      attrs: this.buildLinkAttrs(new_element)
+    };
+  }
+
+  private buildTableToSend(new_element: JointJSCell, element_id: string): CreateTable{
+    return {
+      id: element_id,
+      attrs: {...new_element.attrs},
+      position: {
+        x: new_element.position?.x || 100,
+        y: new_element.position?.y || 100
+      },
+      size: { 
+        width: new_element.size?.width || 200 , 
+        height: new_element.size?.height || 146 
+      },
+      type: new_element.type,
+    }
   }
 
   private addCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
-
-    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
-    const new_table = this.get_table_by_id(table_id);
-
-    if(new_table == undefined){
-      return;          
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
     }
 
-    const dataWS: CreateTable = {
-      id: table_id,
-      attrs: {...new_table.attrs},
-      position: {
-        x: new_table.position?.x || 100,
-        y: new_table.position?.y || 100
-      },
-      size: { 
-        width: new_table.size?.width || 200 , 
-        height: new_table.size?.height || 146 
-      },
-      type: new_table.type,
-    }
+    const element_id = this.getElementId(cell.id.toString());
+    const new_element = this.getElementById(element_id);
 
-    this.sendWSRequest(dataWS, "create_table")
+    const dataWS = cell.isLink()? 
+      this.buildLinkToSend(new_element, element_id) : 
+      this.buildTableToSend(new_element, element_id);
+
+    this.sendWSRequest(dataWS, "create_element");
   }
 
   private removeCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
-    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+    const element_id = this.getElementId(cell.id.toString());
 
     const dataWS: DeleteTable = {
-      id: table_id
+      id: element_id
     }
 
-    this.sendWSRequest(dataWS, "delete_table")
+    this.sendWSRequest(dataWS, "delete_element");
   }
 
-  private updateCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+  private buildUpdteTableToSend(new_element: JointJSCell, element_id: string): UpdateTable {
+    return {
+      id: element_id,
+      type: "standard.Rectangle",
+      attrs: {...new_element.attrs}
+    }
+  }
 
-    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
-    const new_attrs = this.get_table_by_id(table_id).attrs;
+  private buildUpdteLinkToSend(new_element: JointJSCell, element_id: string): TextUpdateLinkLabelAttrs {
+    const attrs = new_element.labels?.[0]?.attrs?.text ?? null;
+    return {
+      id: element_id,
+      type: "standard.Link",
+      text: attrs?.text 
+    }
+  }
 
-    const dataWS: UpdateTable = {
-      id: table_id,
-      attrs: {...new_attrs}
+  private updateElementAndSend(cell: joint.dia.Cell){
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
     }
 
-    this.sendWSRequest(dataWS, "update_table_atributes")
+    const element_id = this.getElementId(cell.id.toString());
+    const new_attrs = this.getElementById(element_id);
+
+    const dataWS = cell.isLink()?
+      this.buildUpdteLinkToSend(new_attrs, element_id):
+      this.buildUpdteTableToSend(new_attrs, element_id);
+
+    this.sendWSRequest(dataWS, "update_table_atributes");
   }
 
   private moveCellAndSend(cell: joint.dia.Cell){
-    this.precisaSalvar.next(true);
+    if (!this.isDestroying) {
+      this.precisaSalvar.next(true);
+    }
 
-    const table_id = cell.id.toString().replace(/(element_table_|element_|table_)/g, '');
+    const element_id = this.getElementId(cell.id.toString());
     const pos_x = cell.position().x;
     const pos_y = cell.position().y;
 
     const dataWS: MoveTable = {
-      id: table_id,
+      id: element_id,
       position: {
         x: pos_x,
         y: pos_y
       }
     }
 
-    this.sendWSRequest(dataWS, "move_table")
+    this.sendWSRequest(dataWS, "move_table");
   }
 
   setQtTablesReceived(qtTablesLoaded: number){
@@ -301,6 +440,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private setupGraphChangeListener() {
     this.graph.on('add', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
+        console.log('Adicionando célula e enviando via WebSocket');
         this.addCellAndSend(cell);
       }
 
@@ -314,18 +454,19 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       }
     });
 
-    this.graph.on('change', (cell: joint.dia.Cell) => {
+    this.graph.on('change:attrs', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos){
-        const changed = cell.changed
-        if(changed.attrs){
-          this.updateCellAndSend(cell);
+        console.log('Atualizando célula e enviando via WebSocket', JSON.stringify(cell));
+        this.updateElementAndSend(cell);
         }
+    });
         
-        if(cell.position() && this.indexTablesLoaded > this.qtTablesLoaded){
+    this.graph.on('change:position', (cell: joint.dia.Cell) => {
+      if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
           this.moveCellAndSend(cell);
         }
+
         this.indexTablesLoaded += this.indexTablesLoaded <= this.qtTablesLoaded? 1 : 0;
-      }
     });
   }
 
@@ -607,6 +748,116 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // Add document click listener to close dropdown when clicking outside
     document.addEventListener('click', this.handleDocumentClick);
+  }
+
+  private subscribeToRemoteCursors(): void {
+    this.subscription.add(
+      this.cursorService.getCursors().subscribe((cursors) => {
+        this.updateRemoteCursors(cursors);
+      })
+    );
+  }
+
+  private setupMouseTracking(): void {
+    if (!this.diagramElement?.nativeElement) {
+      return;
+    }
+
+    const diagramElement = this.diagramElement.nativeElement;
+
+    diagramElement.addEventListener('mousemove', (event: MouseEvent) => {
+      const rect = diagramElement.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      this.cursorService.updateCursor(x, y);
+    });
+
+    diagramElement.addEventListener('mouseleave', () => {
+      this.cursorService.leaveDiagram();
+    });
+  }
+
+  private updateRemoteCursors(cursors: Map<string, any>): void {
+    if (!this.paper) {
+      return;
+    }
+
+    if (!this.remoteCursorsContainer) {
+      this.remoteCursorsContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      this.remoteCursorsContainer.setAttribute('id', 'remote-cursors-container');
+      this.paper.svg.appendChild(this.remoteCursorsContainer);
+    }
+
+    const currentUserIds = new Set(this.remoteCursorsMap.keys());
+    const newUserIds = new Set(cursors.keys());
+
+    currentUserIds.forEach((userId) => {
+      if (!newUserIds.has(userId)) {
+        const cursor = this.remoteCursorsMap.get(userId);
+        if (cursor) {
+          cursor.cursor.remove();
+          cursor.name.remove();
+          this.remoteCursorsMap.delete(userId);
+        }
+      }
+    });
+
+    // Update or create cursors
+    cursors.forEach((cursorData, userId) => {
+      let cursorGroup = this.remoteCursorsMap.get(userId);
+
+      if (!cursorGroup) {
+        // Create new cursor group
+        const cursor = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        cursor.setAttribute('id', `cursor-${userId}`);
+        cursor.setAttribute('style', 'transition: transform 0.03s ease-out');
+
+        // Create cursor pointer (SVG path representing an arrow/pointer) - MENOR
+        const pointer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pointer.setAttribute('d', 'M0,0 L0,12 L3,9 L6,14 L8,13 L5,8 L9,8 Z');
+        pointer.setAttribute('fill', cursorData.color);
+        pointer.setAttribute('opacity', '0.9');
+        cursor.appendChild(pointer);
+
+        // Create user name label - com background
+        const nameBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        nameBg.setAttribute('x', '0');
+        nameBg.setAttribute('y', '14');
+        nameBg.setAttribute('width', '120');
+        nameBg.setAttribute('height', '16');
+        nameBg.setAttribute('fill', cursorData.color);
+        nameBg.setAttribute('opacity', '0.2');
+        nameBg.setAttribute('rx', '3');
+        cursor.appendChild(nameBg);
+
+        const name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        name.setAttribute('x', '3');
+        name.setAttribute('y', '25');
+        name.setAttribute('font-size', '11');
+        name.setAttribute('font-weight', 'bold');
+        name.setAttribute('fill', cursorData.color);
+        name.setAttribute('font-family', 'Arial, sans-serif');
+        name.setAttribute('pointer-events', 'none');
+        name.textContent = cursorData.user_name;
+
+        this.remoteCursorsContainer?.appendChild(cursor);
+        this.remoteCursorsContainer?.appendChild(name);
+
+        cursorGroup = { cursor, name };
+        this.remoteCursorsMap.set(userId, cursorGroup);
+      }
+
+      // Converter coordenadas de página para coordenadas do SVG
+      const paperRect = this.paper.svg.getBoundingClientRect();
+      const svgX = cursorData.x - paperRect.left;
+      const svgY = cursorData.y - paperRect.top;
+
+      // Update position
+      cursorGroup.cursor.setAttribute('transform', `translate(${svgX}, ${svgY})`);
+      cursorGroup.name.setAttribute('x', (svgX + 3).toString());
+      cursorGroup.name.setAttribute('y', (svgY + 25).toString());
+    });
   }
 
   private setupPanning(): void {
@@ -1406,10 +1657,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  exportToJointJSData(): JointJSGraph {
-    return this.schemaService.exportToJointJSData();
-  }
-
   exportToJSONString(): string {
     return this.schemaService.exportToJSONString();
   }
@@ -1418,62 +1665,62 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     this.schemaService.clearSchema();
   }
 
-  loadSampleData(): void {
-    const sampleData: JointJSGraph = {
-      cells: [
-        {
-          type: 'standard.Rectangle',
-          id: 'table_users',
-          position: { x: 100, y: 100 },
-          size: { width: 200, height: 120 },
-          attrs: {
-            label: { text: 'Users' },
-            'row@0-name': { text: 'id' },
-            'row@0-type': { text: 'INT' },
-            'row@0-meta': { pk: true, fk: false },
-            'row@1-name': { text: 'name' },
-            'row@1-type': { text: 'VARCHAR(255)' },
-            'row@1-meta': { pk: false, fk: false },
-            'row@2-name': { text: 'email' },
-            'row@2-type': { text: 'VARCHAR(255)' },
-            'row@2-meta': { pk: false, fk: false }
-          }
-        },
-        {
-          type: 'standard.Rectangle',
-          id: 'table_orders',
-          position: { x: 400, y: 100 },
-          size: { width: 200, height: 120 },
-          attrs: {
-            label: { text: 'Orders' },
-            'row@0-name': { text: 'id' },
-            'row@0-type': { text: 'INT' },
-            'row@0-meta': { pk: true, fk: false },
-            'row@1-name': { text: 'user_id' },
-            'row@1-type': { text: 'INT' },
-            'row@1-meta': { pk: false, fk: true },
-            'row@2-name': { text: 'total' },
-            'row@2-type': { text: 'DECIMAL(10,2)' },
-            'row@2-meta': { pk: false, fk: false }
-          }
-        },
-        {
-          type: 'standard.Link',
-          id: 'rel_users_orders',
-          source: { id: 'table_users' },
-          target: { id: 'table_orders' },
-          labels: [{
-            attrs: {
-              text: { text: '1:n' }
-            },
-            position: 0.5
-          }]
-        }
-      ]
-    };
+  // loadSampleData(): void {
+  //   const sampleData: JointJSGraph = {
+  //     cells: [
+  //       {
+  //         type: 'standard.Rectangle',
+  //         id: 'table_users',
+  //         position: { x: 100, y: 100 },
+  //         size: { width: 200, height: 120 },
+  //         attrs: {
+  //           label: { text: 'Users' },
+  //           'row@0-name': { text: 'id' },
+  //           'row@0-type': { text: 'INT' },
+  //           'row@0-meta': { pk: true, fk: false },
+  //           'row@1-name': { text: 'name' },
+  //           'row@1-type': { text: 'VARCHAR(255)' },
+  //           'row@1-meta': { pk: false, fk: false },
+  //           'row@2-name': { text: 'email' },
+  //           'row@2-type': { text: 'VARCHAR(255)' },
+  //           'row@2-meta': { pk: false, fk: false }
+  //         }
+  //       },
+  //       {
+  //         type: 'standard.Rectangle',
+  //         id: 'table_orders',
+  //         position: { x: 400, y: 100 },
+  //         size: { width: 200, height: 120 },
+  //         attrs: {
+  //           label: { text: 'Orders' },
+  //           'row@0-name': { text: 'id' },
+  //           'row@0-type': { text: 'INT' },
+  //           'row@0-meta': { pk: true, fk: false },
+  //           'row@1-name': { text: 'user_id' },
+  //           'row@1-type': { text: 'INT' },
+  //           'row@1-meta': { pk: false, fk: true },
+  //           'row@2-name': { text: 'total' },
+  //           'row@2-type': { text: 'DECIMAL(10,2)' },
+  //           'row@2-meta': { pk: false, fk: false }
+  //         }
+  //       },
+  //       {
+  //         type: 'standard.Link',
+  //         id: 'rel_users_orders',
+  //         source: { id: 'table_users' },
+  //         target: { id: 'table_orders' },
+  //         labels: [{
+  //           attrs: {
+  //             text: { text: '1:n' }
+  //           },
+  //           position: 0.5
+  //         }]
+  //       }
+  //     ]
+  //   };
     
-    this.loadFromJointJSData(sampleData);
-  }
+  //   this.loadFromJointJSData(sampleData);
+  // }
 
   reinitializeDiagram(): void {
     if (this.paper) {
@@ -1515,40 +1762,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     } else {
       console.warn('Cannot resize canvas: invalid dimensions', { parentWidth, parentHeight });
     }
-  }
-
-  debugCanvasState(): void {
-    console.log('=== Canvas Debug Info ===');
-    console.log('JointJS initialized:', this.isJointJSInitialized());
-    
-    if (this.diagramElement?.nativeElement) {
-      const element = this.diagramElement.nativeElement;
-      console.log('Container dimensions:', {
-        offsetWidth: element.offsetWidth,
-        offsetHeight: element.offsetHeight,
-        clientWidth: element.clientWidth,
-        clientHeight: element.clientHeight,
-        scrollWidth: element.scrollWidth,
-        scrollHeight: element.scrollHeight
-      });
-      
-      const computedStyle = window.getComputedStyle(element);
-      console.log('Container computed style:', {
-        width: computedStyle.width,
-        height: computedStyle.height,
-        display: computedStyle.display,
-        position: computedStyle.position,
-        visibility: computedStyle.visibility
-      });
-    }
-    
-    if (this.paper) {
-      const paperSize = this.paper.getComputedSize();
-      console.log('Paper dimensions:', paperSize);
-      console.log('Current scale:', this.currentScale);
-    }
-    
-    console.log('=== End Debug Info ===');
   }
 
   private isJointJSInitialized(): boolean {
@@ -1724,8 +1937,4 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  async takeCleanScreenshot(filename: string = 'schema-diagram.png'): Promise<void> {
-    // Deprecated - use takeScreenshot instead
-    return this.takeScreenshot(filename);
-  }
 } 

@@ -14,7 +14,7 @@ import {
   providedIn: 'root'
 })
 export class SchemaApiService {
-  private endpoint: string = 'https://backend-colabd.onrender.com/';
+  private endpoint: string = 'https://develop-colabd.onrender.com/';
   private endpointSchemas: string = this.endpoint + 'schemas';
   private endpointGenerateSql: string = this.endpoint + 'generate-sql';
 
