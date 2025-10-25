@@ -216,12 +216,10 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
   private manipulateUpdateElement(cells: JointJSCell[] ,receivedData: UpdateTable | TextUpdateLinkLabelAttrs): JointJSCell[] {
     const item = cells.find(cell => cell.id.includes(receivedData.id));
-
+    
     if(!item) return cells;
 
-
-    if (receivedData.type == "standard.Link"){ 
-      console.log('Atualizando rótulo do link via WebSocket');
+    if (item.type == "standard.Link"){ 
       item.labels = item.labels || [];
 
       item.labels[0] = {
@@ -456,7 +454,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     this.graph.on('change:attrs', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos){
-        console.log('Atualizando célula e enviando via WebSocket', JSON.stringify(cell));
         this.updateElementAndSend(cell);
         }
     });
@@ -688,7 +685,8 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                   type: RelationshipType.OneToMany
                 });
               }
-            } else {
+            } 
+            else {
               console.log('Source or target table not found');
             }
           }
