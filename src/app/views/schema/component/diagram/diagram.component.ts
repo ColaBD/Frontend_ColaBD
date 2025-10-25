@@ -438,6 +438,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private setupGraphChangeListener() {
     this.graph.on('add', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
+        console.log('Adicionando célula e enviando via WebSocket');
         this.addCellAndSend(cell);
       }
 
