@@ -11,7 +11,7 @@ import { LoginUserVM } from "../model/login-user.view-model";
   providedIn: 'root'
 })
 export class AuthService{
-  private endpoint: string = 'https://develop-colabd.onrender.com/'
+  private endpoint: string = 'https://backend-colabd.onrender.com/'
   private endpointRegistrar: string = this.endpoint + 'auth/register';
   private endpointLogin: string = this.endpoint + 'auth/login';
   private endpointLogout: string = this.endpoint + 'auth/logout';
