@@ -420,4 +420,22 @@
       margin-top: 2px;
     }
   }
+
+  // Column name tooltip styles
+  .column-name {
+    cursor: default;
+    
+    // Highlight columns with tooltip (truncated text)
+    &:has(title) {
+      cursor: help;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: rgba(0, 102, 204, 0.3);
+      
+      &:hover {
+        fill: #0066cc;
+        text-decoration-color: #0066cc;
+      }
+    }
+  }
 } 

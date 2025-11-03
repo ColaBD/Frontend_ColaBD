@@ -1420,7 +1420,21 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       columnText += ' *';
     }
     
-    columnName.textContent = columnText;
+    // Truncate text if too long (limit to ~15 characters)
+    const maxLength = 8;
+    const displayText = columnText.length > maxLength 
+      ? columnText.substring(0, maxLength) + '...' 
+      : columnText;
+    
+    columnName.textContent = displayText;
+    
+    // Add tooltip with full text if truncated
+    if (columnText.length > maxLength) {
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = columnText;
+      columnName.appendChild(title);
+    }
+    
     container.appendChild(columnName);
     
     // Create column type (right-aligned)

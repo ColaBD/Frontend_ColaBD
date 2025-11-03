@@ -59,11 +59,6 @@ export class LoginComponent {
   }
 
   processarSucesso() {
-    this.toastrService.success(
-      `Login realizado com sucesso`,
-      'Sucesso'
-    );
-
     this.router.navigate(['/dashboard']);
   }
 
