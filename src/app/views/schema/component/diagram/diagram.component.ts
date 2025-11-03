@@ -37,6 +37,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('diagram') diagramElement!: ElementRef;
   @ViewChild('relationshipDropdown') relationshipDropdown!: ElementRef;
   @ViewChild('relationshipSelect') relationshipSelect!: ElementRef<HTMLSelectElement>;
+  @Output() tableClicked = new EventEmitter<string>(); // Emite o ID da tabela clicada
   precisaSalvar: Subject<boolean> = new Subject<boolean>();
   dadosRecebidos: boolean = false;
   indexTablesLoaded = 1; 
@@ -695,6 +696,13 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
           this.sourceElement.attr('table-header/fill', '#ababab'); // Remove highlight
           this.sourceElement = null;
           this.isLinkingMode = false;
+        }
+      } else {
+        // Emitir o ID da tabela clicada quando não estiver em modo de linking
+        const element = elementView.model;
+        const tableId = this.getTableIdFromElementId(element.id.toString());
+        if (tableId) {
+          this.tableClicked.emit(tableId);
         }
       }
     });

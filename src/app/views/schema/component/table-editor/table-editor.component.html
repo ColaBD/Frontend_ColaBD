@@ -18,8 +18,10 @@
           
           <div class="tables-list" cdkScrollable>
             @for (table of tables; track table.id; let i = $index) {
-              <div class="table-item">
+              <div class="table-item" [attr.data-table-id]="table.id">
                 <mat-expansion-panel
+                  #accordion
+                  [expanded]="expandedTableId === table.id"
                   (opened)="onTableExpanded(table)"
                   (closed)="onTableCollapsed(table)">
                   <mat-expansion-panel-header>

@@ -170,4 +170,33 @@ export class SchemaApiService {
             catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
         );
   }
+
+  /**
+   * Get list of users who have access to a schema
+   */
+  public getSchemaCollaborators(schemaId: string): Observable<SchemaCollaborator[]> {
+    const url = `${this.endpointSchemas}/${schemaId}/collaborative`;
+    return this.http.get<SchemaCollaboratorsResponse>(url, this.obterHeadersAutorizacao())
+        .pipe(
+            map((response) => response.data),
+            catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
+        );
+  }
+}
+
+export interface SchemaCollaborator {
+  id: string;
+  user_id: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  signed_image_url: string;
+}
+
+export interface SchemaCollaboratorsResponse {
+  data: SchemaCollaborator[];
+  status_code: number;
+  success: boolean;
 } 

@@ -80,13 +80,14 @@
     </div>
 
     <div class="diagram-container" [style.width.px]="diagramWidth">
-      <app-diagram></app-diagram>
+      <app-diagram (tableClicked)="onTableClicked($event)"></app-diagram>
     </div>
   </div>
 
     <app-share-modal
             [isVisible]="isShareModalVisible"
             [schemaTitle]="currentSchemaTitle"
+            [schemaId]="currentSchemaId"
             (close)="closeShareModal()"
             (shareWithUser)="shareSchemaWithUser($event)">
     </app-share-modal>

@@ -40,6 +40,7 @@ export class TableEditorComponent implements OnInit {
   dataTypes = ['INT', 'VARCHAR', 'CHAR', 'TEXT', 'FLOAT', 'DOUBLE', 'BOOLEAN', 'DATE', 'TIMESTAMP'];
   indexTypes = ['BTREE', 'HASH', 'FULLTEXT', 'SPATIAL'];
   private currentlyEditingTableId: string | null = null;
+  expandedTableId: string | null = null; // Track which table accordion is expanded
   
   constructor(
     private schemaService: SchemaService,
@@ -360,6 +361,16 @@ export class TableEditorComponent implements OnInit {
       this.lockService.releaseLock(table.id);
       this.currentlyEditingTableId = null;
       console.log(`🔓 Lock liberado ao fechar: ${table.id} (${table.name})`);
+    }
+  }
+
+  // Método para expandir accordion de uma tabela específica
+  expandTable(tableId: string): void {
+    this.expandedTableId = tableId;
+    // Scroll para a tabela se necessário
+    const tableElement = document.querySelector(`[data-table-id="${tableId}"]`);
+    if (tableElement) {
+      tableElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 

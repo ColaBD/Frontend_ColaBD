@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { SchemaApiService, SchemaCollaborator } from '../../services/schema-api.service';
 
 export interface ShareModalData {
     schemaId: string;
@@ -15,10 +16,10 @@ export interface ShareModalData {
 }
 
 export interface SharedUser {
+    id: string;
     email: string;
-    permission: 'viewer' | 'editor';
-    name?: string;
-    avatar?: string;
+    name: string;
+    avatar: string;
 }
 
 @Component({
@@ -38,9 +39,10 @@ export interface SharedUser {
     templateUrl: './share-modal.component.html',
     styleUrls: ['./share-modal.component.scss']
 })
-export class ShareModalComponent implements OnInit {
+export class ShareModalComponent implements OnInit, OnChanges {
     @Input() isVisible = false;
     @Input() schemaTitle = '';
+    @Input() schemaId: string | null = null;
     @Output() close = new EventEmitter<void>();
     @Output() shareWithUser = new EventEmitter<{ email: string; permission: 'viewer' | 'editor' }>();
 
@@ -53,93 +55,75 @@ export class ShareModalComponent implements OnInit {
     isLoading = false;
     isSaving = false;
 
-    constructor(private snackBar: MatSnackBar) {}
+    constructor(
+        private snackBar: MatSnackBar,
+        private schemaApiService: SchemaApiService
+    ) {}
 
     ngOnInit(): void {
-        this.loadSharedUsers();
+        // Don't load on init - wait for modal to open
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        // Only reload when modal becomes visible (opens)
+        if (changes['isVisible']) {
+            if (this.isVisible && this.schemaId) {
+                // Modal just opened - load collaborators in background
+                this.loadSharedUsers();
+            } else if (!this.isVisible) {
+                // Modal closed - reset state
+                this.resetModalState();
+            }
+        }
     }
 
     /**
-     * Load existing shared users (mock data for now)
+     * Reset modal state when closing
+     */
+    private resetModalState(): void {
+        this.emailToShare = '';
+        this.isEmailValid = true;
+        this.isSharing = false;
+        // Keep sharedUsers to avoid flickering on reopen
+    }
+
+    /**
+     * Load existing shared users from API (runs in background)
      */
     private loadSharedUsers(): void {
+        if (!this.schemaId) {
+            return;
+        }
+
         this.isLoading = true;
+        this.sharedUsers = []; // Clear previous data
 
-        // Simulate API call
-        setTimeout(() => {
-            this.sharedUsers = [
-                {
-                    email: 'maria.silva@exemplo.com',
-                    permission: 'editor',
-                    name: 'Maria Silva',
-                    avatar: 'https://ui-avatars.com/api/?name=Maria+Silva&background=4285f4&color=fff'
-                }
-            ];
-            this.isLoading = false;
-        }, 500);
+        this.schemaApiService.getSchemaCollaborators(this.schemaId).subscribe({
+            next: (collaborators: SchemaCollaborator[]) => {
+                this.sharedUsers = collaborators.map(collab => ({
+                    id: collab.id,
+                    email: collab.user.email,
+                    name: collab.user.name,
+                    avatar: collab.signed_image_url || this.generateAvatarUrl(collab.user.name)
+                }));
+                this.isLoading = false;
+            },
+            error: (error) => {
+                console.error('Erro ao carregar colaboradores:', error);
+                this.showMessage('Erro ao carregar colaboradores', 'error');
+                this.sharedUsers = [];
+                this.isLoading = false;
+            }
+        });
     }
 
     /**
-     * Add a new user to share with
+     * Generate avatar URL from user name
      */
-    addUser(): void {
-        if (!this.newUserEmail.trim()) {
-            this.showMessage('Por favor, insira um email válido', 'error');
-            return;
-        }
-
-        if (!this.isValidEmail(this.newUserEmail)) {
-            this.showMessage('Por favor, insira um email válido', 'error');
-            return;
-        }
-
-        // Check if user already exists
-        if (this.sharedUsers.some(user => user.email.toLowerCase() === this.newUserEmail.toLowerCase())) {
-            this.showMessage('Este usuário já tem acesso ao schema', 'warning');
-            return;
-        }
-
-        this.isSaving = true;
-
-        // Simulate API call to add user
-        setTimeout(() => {
-            const newUser: SharedUser = {
-                email: this.newUserEmail.trim(),
-                permission: this.newUserPermission,
-                name: this.extractNameFromEmail(this.newUserEmail),
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(this.extractNameFromEmail(this.newUserEmail))}&background=random`
-            };
-
-            this.sharedUsers.push(newUser);
-            this.newUserEmail = '';
-            this.newUserPermission = 'viewer';
-            this.isSaving = false;
-
-            this.showMessage('Usuário adicionado com sucesso!', 'success');
-        }, 1000);
+    private generateAvatarUrl(name: string): string {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`;
     }
 
-    /**
-     * Remove a user from sharing
-     */
-    removeUser(userEmail: string): void {
-        const userIndex = this.sharedUsers.findIndex(user => user.email === userEmail);
-        if (userIndex > -1) {
-            this.sharedUsers.splice(userIndex, 1);
-            this.showMessage('Usuário removido', 'success');
-        }
-    }
-
-    /**
-     * Change user permission
-     */
-    changeUserPermission(userEmail: string, newPermission: 'viewer' | 'editor'): void {
-        const user = this.sharedUsers.find(user => user.email === userEmail);
-        if (user) {
-            user.permission = newPermission;
-            this.showMessage('Permissão atualizada', 'success');
-        }
-    }
 
     /**
      * Copy share link to clipboard
@@ -199,19 +183,6 @@ export class ShareModalComponent implements OnInit {
         ).join(' ');
     }
 
-    /**
-     * Get permission display text
-     */
-    getPermissionText(permission: 'viewer' | 'editor'): string {
-        return permission === 'editor' ? 'Pode editar' : 'Pode visualizar';
-    }
-
-    /**
-     * Get permission icon
-     */
-    getPermissionIcon(permission: 'viewer' | 'editor'): string {
-        return permission === 'editor' ? 'edit' : 'visibility';
-    }
 
     /**
      * Close modal
@@ -243,6 +214,12 @@ export class ShareModalComponent implements OnInit {
             return;
         }
 
+        // Check if user already exists
+        if (this.sharedUsers.some(user => user.email.toLowerCase() === this.emailToShare.toLowerCase())) {
+            this.showMessage('Este usuário já tem acesso ao schema', 'warning');
+            return;
+        }
+
         this.isEmailValid = true;
         this.isSharing = true;
 
@@ -256,6 +233,8 @@ export class ShareModalComponent implements OnInit {
             this.isSharing = false;
             this.emailToShare = '';
             this.showMessage('Schema compartilhado com sucesso!', 'success');
+            // Reload collaborators list
+            this.loadSharedUsers();
         }, 1000);
     }
 
@@ -263,15 +242,6 @@ export class ShareModalComponent implements OnInit {
         return this.emailToShare.trim().length > 0 && !this.isSharing;
     }
 
-    /**
-     * Handle Enter key press in email input
-     */
-    onEmailKeyPress(event: KeyboardEvent): void {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            this.addUser();
-        }
-    }
 
     /**
      * Track function for ngFor

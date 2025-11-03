@@ -52,6 +52,39 @@
                     </small>
                 </div>
             </div>
+
+            <!-- Shared Users List -->
+            <div class="shared-users-section mt-4">
+                <h6 class="section-title mb-3">Pessoas com acesso</h6>
+                
+                <!-- Loading state -->
+                <div *ngIf="isLoading" class="loading-container text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-2 mb-0">Carregando colaboradores...</p>
+                </div>
+
+                <!-- User list -->
+                <div *ngIf="!isLoading && sharedUsers.length > 0" class="users-list">
+                    <div *ngFor="let user of sharedUsers; trackBy: trackUser" class="user-item">
+                        <div class="user-info">
+                            <img [src]="user.avatar" [alt]="user.name" class="user-avatar">
+                            <div class="user-details">
+                                <div class="user-name">{{ user.name }}</div>
+                                <div class="user-email">{{ user.email }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state -->
+                <div *ngIf="!isLoading && sharedUsers.length === 0" class="empty-state text-center py-3">
+                    <i class="bi bi-person-plus-fill text-muted mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-muted mb-0">Nenhum colaborador ainda</p>
+                    <small class="text-muted">Adicione pessoas usando o campo acima</small>
+                </div>
+            </div>
         </div>
 
         <!-- Modal Footer -->

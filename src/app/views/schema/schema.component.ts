@@ -33,6 +33,7 @@ import { SchemaApiService } from './services/schema-api.service';
 })
 export class SchemaComponent implements OnInit, OnDestroy {
   @ViewChild(DiagramComponent) diagramComponent!: DiagramComponent;
+  @ViewChild(TableEditorComponent) tableEditorComponent!: TableEditorComponent;
   
   activeEditor: 'table' | 'code' = 'table';
   comp_diagram_incializado = false;
@@ -338,5 +339,14 @@ export class SchemaComponent implements OnInit, OnDestroy {
   onGenerateSQL(database: 'mysql' | 'postgresql') {
     console.log('Generating SQL for database:', database);
     // The actual generation is handled by the modal component
+  }
+
+  onTableClicked(tableId: string): void {
+    // Garantir que estamos na aba de tabelas
+    if (this.tableEditorComponent) {
+      this.tableEditorComponent.selectedTabIndex = 0; // Ir para aba de tabelas
+      // Expandir o accordion da tabela clicada
+      this.tableEditorComponent.expandTable(tableId);
+    }
   }
 }
