@@ -163,8 +163,8 @@ export class SchemaApiService {
   /**
    * Request backend to generate SQL from JointJS schema and return a signed download URL
    */
-  public generateSQL(schema: string, sgbd: 'mysql' | 'postgresql' | 'oracle' | string): Observable<{ url: string }> {
-    const body = { schema, sgbd };
+  public generateSQL(schema_data: string, sgbd: 'mysql' | 'postgresql' | 'oracle' | string): Observable<{ url: string }> {
+    const body = { schema_data, sgbd };
     return this.http.post<{ url: string }>(this.endpointGenerateSql, body, this.obterHeadersAutorizacao())
         .pipe(
             catchError((err: HttpErrorResponse) => this.processarErroHttp(err))

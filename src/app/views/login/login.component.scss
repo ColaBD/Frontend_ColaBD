@@ -21,7 +21,7 @@ $corFundoBtn: linear-gradient(135deg, #27505f, #0f1a2b);
   .subtitle {
     color: #666;
     font-size: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
   .input-email{
@@ -72,23 +72,6 @@ $corFundoBtn: linear-gradient(135deg, #27505f, #0f1a2b);
     margin: 15px 0;
     font-size: 14px;
     color: #666;
-  }
-
-  .social-login {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 15px;
-
-    .btn {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
   }
 
   .signup-text {
