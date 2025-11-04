@@ -176,14 +176,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   getSchemaImageUrl(schema: SchemaListItem): string {
-    if (schema.signed_image_url) {
-      return schema.signed_image_url;
-    }
-    
-    if (schema.display_picture) {
-      return schema.display_picture;
-    }
-    
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDIwMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjhGOUZBIi8+CjxwYXRoIGQ9Ik04NS4zMzMzIDQ1Ljc1TDEwMC42NjcgNjEuMDgzM0wxMTYgNDUuNzVMMTQxLjMzMyA3MS4wODMzSDE1OC42NjdWODguNDE2N0g0MS4zMzMzVjcxLjA4MzNMNjAuNjY2NyA1MS43NUw4NS4zMzMzIDQ1Ljc1WiIgZmlsbD0iIzZDNzU3RCIvPgo8Y2lyY2xlIGN4PSI3NS4zMzMzIiBjeT0iNTQuNDE2NyIgcj0iOC4zMzMzMyIgZmlsbD0iIzZDNzU3RCIvPgo8L3N2Zz4K';
   }
 

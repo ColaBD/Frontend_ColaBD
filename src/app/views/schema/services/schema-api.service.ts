@@ -69,7 +69,16 @@ export class SchemaApiService {
   public getAllSchemas(): Observable<SchemaListItem[]> {
     return this.http.get<SchemasListResponse>(this.endpointSchemas, this.obterHeadersAutorizacao())
       .pipe(
-        map((response) => response.data),
+        map((response) => {
+          return response.data.map((item: any) => ({
+            id: item.schema?.id || item.id,
+            inserted_at: item.schema?.inserted_at || item.inserted_at,
+            title: item.schema?.title || item.title,
+            database_model: item.schema?.database_model || item.database_model,
+            display_picture: item.schema?.display_picture || item.display_picture,
+            updated_at: item.schema?.updated_at || item.updated_at
+          }));
+        }),
         catchError((err: HttpErrorResponse) => this.processarErroHttp(err))
       );
   }
@@ -192,7 +201,6 @@ export interface SchemaCollaborator {
     name: string;
     email: string;
   };
-  signed_image_url: string;
 }
 
 export interface SchemaCollaboratorsResponse {

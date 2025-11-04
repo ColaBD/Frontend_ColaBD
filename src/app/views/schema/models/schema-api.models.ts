@@ -13,7 +13,6 @@ export interface SchemaListItem {
   database_model: string | null;
   display_picture: string;
   updated_at: string | null;
-  signed_image_url: string | null;
 }
 
 export interface SchemaDetails {

@@ -104,7 +104,7 @@ export class ShareModalComponent implements OnInit, OnChanges {
                     id: collab.id,
                     email: collab.user.email,
                     name: collab.user.name,
-                    avatar: collab.signed_image_url || this.generateAvatarUrl(collab.user.name)
+                    avatar: this.generateAvatarUrl(collab.user.name)
                 }));
                 this.isLoading = false;
             },
