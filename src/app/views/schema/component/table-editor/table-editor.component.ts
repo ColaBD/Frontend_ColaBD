@@ -385,6 +385,6 @@ export class TableEditorComponent implements OnInit {
       }
     };
     console.log('📤 Enviando atualização de tabela:', update);
-    this.socketService.atualizacaoSchema(update, 'update_table_atributes');
+    this.socketService.atualizacaoSchema(update, 'update_table_attributes');
   }
 } 

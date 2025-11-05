@@ -409,7 +409,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       this.buildUpdteLinkToSend(new_attrs, element_id):
       this.buildUpdteTableToSend(new_attrs, element_id);
 
-    this.sendWSRequest(dataWS, "update_table_atributes");
+    this.sendWSRequest(dataWS, "update_table_attributes");
   }
 
   private moveCellAndSend(cell: joint.dia.Cell){
