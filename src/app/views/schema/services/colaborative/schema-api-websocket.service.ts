@@ -57,8 +57,7 @@ export class SchemaApiWebsocketService {
   atualizacaoSchema(schema_update: BaseElement, channel_emit: string) {
     console.log('Enviando atualização do schema via WebSocket');
 
-    const endpoint_ws = `${channel_emit}_${this.schema_id}`;
-    this.socket.emit(endpoint_ws, schema_update);
+    this.socket.emit(channel_emit, schema_update);
   }
 
   private toClass<T extends object>(cls: new () => T, data: any): void {
@@ -68,37 +67,37 @@ export class SchemaApiWebsocketService {
   }
   
   onCreatedSchema(){
-    this.socket.on(`receive_new_element_${this.schema_id}`, (data: any) => {
+    this.socket.on('receive_new_element', (data: any) => {
       this.toClass(CreateTable, data);
     });
   }
 
   onDeletedSchema(){
-    this.socket.on(`receive_deleted_element_${this.schema_id}`, (data: any) => {
+    this.socket.on('receive_deleted_element', (data: any) => {
       this.toClass(DeleteTable, data);
     });
   }
 
   onUpdatedSchema(){
-    this.socket.on(`receive_updated_table_${this.schema_id}`, (data: any) => {
+    this.socket.on('receive_updated_table', (data: any) => {
       this.toClass(UpdateTable, data);
     });
   }
 
   onMovedSchema(){
-    this.socket.on(`receive_moved_table_${this.schema_id}`, (data: any) => {
+    this.socket.on('receive_moved_table', (data: any) => {
       this.toClass(MoveTable, data);
     });
   }
 
   onCursorMoved(){
-    this.socket.on(`cursor_update_${this.schema_id}`, (data: any) => {
+    this.socket.on('cursor_update', (data: any) => {
       // O serviço de cursor vai receber esse evento direto do socket
     });
   }
 
   onCursorLeaved(){
-    this.socket.on(`cursor_leave_${this.schema_id}`, (data: any) => {
+    this.socket.on('cursor_leave', (data: any) => {
       // O serviço de cursor vai receber esse evento direto do socket
     });
   }

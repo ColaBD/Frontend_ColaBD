@@ -47,7 +47,7 @@ export class SchemaCursorService {
 
     // Listen for cursor updates from other users
     this.socketService.socket?.on(
-      `cursor_update_${this.schemaId}`,
+      `cursor_update`,
       (data: CursorPosition) => {
         this.handleRemoteCursor(data);
       }
@@ -55,7 +55,7 @@ export class SchemaCursorService {
 
     // Listen for cursor leave
     this.socketService.socket?.on(
-      `cursor_leave_${this.schemaId}`,
+      `cursor_leave`,
       (data: { user_id: string }) => {
         this.handleCursorLeave(data.user_id);
       }
@@ -94,7 +94,7 @@ export class SchemaCursorService {
     this.lastCursorY = y;
     this.lastEmissionTime = agora;
 
-    const eventName = `cursor_move_${this.schemaId}`;
+    const eventName = `cursor_move`;
 
     (this.socketService as any).socket?.emit(eventName, {
       user_id: this.currentUserId,
