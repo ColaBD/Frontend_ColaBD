@@ -108,7 +108,7 @@ export class SchemaCursorService {
   leaveDiagram(): void {
     if (!this.schemaId || !this.currentUserId) return;
 
-    const eventName = `cursor_leave_${this.schemaId}`;
+    const eventName = `cursor_leave`;
     (this.socketService as any).socket?.emit(eventName, {
       user_id: this.currentUserId
     });

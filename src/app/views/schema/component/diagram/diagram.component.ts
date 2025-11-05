@@ -264,7 +264,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
       this.schemaService.loadFromJointJSData(graph);
 
-      this.fitContent();
       this.dadosRecebidos = false;
 
     } catch (error) {
