@@ -195,7 +195,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
             if (this.diagramComponent) {
               // Clear existing data first
               this.diagramComponent.clearDiagram();
-              console.log('O QUE VEIOOOO', JSON.stringify(jointjsGraph.cells));
               this.diagramComponent.setQtTablesReceived(jointjsGraph.cells.length);
               
               // Then load the new data
