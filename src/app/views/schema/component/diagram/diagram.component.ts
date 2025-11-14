@@ -149,7 +149,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     // Clean up document click listener for dropdown
     document.removeEventListener('click', this.handleDocumentClick.bind(this));
-    
+
     // Clean up JointJS instances
     if (this.paper) {
       this.paper.remove();
@@ -438,7 +438,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   private setupGraphChangeListener() {
     this.graph.on('add', (cell: joint.dia.Cell) => {
       if(!this.dadosRecebidos && this.indexTablesLoaded > this.qtTablesLoaded){
-        console.log('Adicionando célula e enviando via WebSocket');
         this.addCellAndSend(cell);
       }
 
@@ -685,9 +684,6 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
                   type: RelationshipType.OneToMany
                 });
               }
-            } 
-            else {
-              console.log('Source or target table not found');
             }
           }
           
@@ -962,7 +958,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     // Handle removed tables
     const currentElementIds = new Set(this.tableElementsMap.keys());
     const newTableIds = new Set(tables.map(t => t.id));
-    
+
     // Remove tables that no longer exist
     currentElementIds.forEach(id => {
       if (!newTableIds.has(id)) {
@@ -1653,16 +1649,17 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   // JointJS Data Import Methods
   
   loadFromJointJSData(jointjsData: JointJSGraph): void {
+    const previousFlagState = this.dadosRecebidos;
     try {
+      this.dadosRecebidos = true;
       this.schemaService.loadFromJointJSData(jointjsData);
-      this.dadosRecebidos = false;
-
+    } catch (error) {
+      console.error('Failed to load diagram from JointJS data:', error);
+    } finally {
+      this.dadosRecebidos = previousFlagState;
       setTimeout(() => {
         this.fitContent();
       }, 100);
-
-    } catch (error) {
-      console.error('Failed to load diagram from JointJS data:', error);
     }
   }
   
@@ -1681,7 +1678,13 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   clearDiagram(): void {
-    this.schemaService.clearSchema();
+    const previousFlagState = this.dadosRecebidos;
+    try {
+      this.dadosRecebidos = true;
+      this.schemaService.clearSchema();
+    } finally {
+      this.dadosRecebidos = previousFlagState;
+    }
   }
 
   // loadSampleData(): void {

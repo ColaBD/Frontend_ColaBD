@@ -53,12 +53,10 @@ export class AuthService{
   }
 
   public registrar(user: RegisterUserVM): Observable<TokenVM>{
-    console.log("func registrar")
     return this.http.post<any>(this.endpointRegistrar, user)
       .pipe(
         map((res) => res.data),
         tap((data: TokenVM) => {
-          console.log('tap do register     '+JSON.stringify(data))
           // this.localStorageService.salvarDadosLocaisUser(dados.access_token);
           this.notificarLogin(data.access_token); 
         }),

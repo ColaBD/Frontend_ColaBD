@@ -56,7 +56,6 @@ export class RegisterComponent {
   }
 
   processarSucesso(res: TokenVM) {
-    console.log(JSON.stringify(res))
     this.toastrService.success(
       `Registro realizado com sucesso`,
       'Sucesso'

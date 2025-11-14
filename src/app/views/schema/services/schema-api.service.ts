@@ -110,7 +110,6 @@ export class SchemaApiService {
     return this.http.post<SchemaCreateApiResponse>(this.endpointSchemas, requestBody, this.obterHeadersAutorizacao())
       .pipe(
         map((response) => {
-          console.log('Create schema API response:', response);
           // Return schema with id and title for navigation
           return {
             id: response.data.schema_id,

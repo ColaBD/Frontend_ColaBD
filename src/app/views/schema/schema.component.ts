@@ -195,7 +195,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
             if (this.diagramComponent) {
               // Clear existing data first
               this.diagramComponent.clearDiagram();
-              console.log('O QUE VEIOOOO', JSON.stringify(jointjsGraph.cells));
               this.diagramComponent.setQtTablesReceived(jointjsGraph.cells.length);
               
               // Then load the new data
@@ -242,7 +241,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
   //     // Get current schema data from the service and save with canvas
   //     this.schemaService.saveSchemaToBackend(this.currentSchemaId, canvas || undefined).subscribe({
   //       next: (response) => {
-  //         console.log('Schema saved successfully:', response);
   //         this.isSavingSchema = false;
   //         this.saveSuccess = true;
           
@@ -267,7 +265,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
   //     // Fallback: save without canvas
   //     this.schemaService.saveSchemaToBackend(this.currentSchemaId).subscribe({
   //       next: (response) => {
-  //         console.log('Schema saved successfully (without image):', response);
   //         this.isSavingSchema = false;
   //         this.saveSuccess = true;
           
@@ -307,7 +304,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
 
     this.schemaApiService.shareSchema(this.currentSchemaId, event.email).subscribe({
       next: (response) => {
-        console.log('Schema compartilhado com sucesso:', response);
         // Success message is already shown by the modal component
       },
       error: (error) => {
@@ -337,7 +333,6 @@ export class SchemaComponent implements OnInit, OnDestroy {
   }
 
   onGenerateSQL(database: 'mysql' | 'postgresql') {
-    console.log('Generating SQL for database:', database);
     // The actual generation is handled by the modal component
   }
 

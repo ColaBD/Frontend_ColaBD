@@ -134,7 +134,6 @@ export class TableEditorComponent implements OnInit {
 
   removeTable(tableId: string, index: number): void {
     this.schemaService.removeTable(tableId);
-    console.log('📤 Removendo tabela:', tableId);
     this.socketService.atualizacaoSchema({ id: tableId } as any, 'delete_table');
   }
 
@@ -346,13 +345,11 @@ export class TableEditorComponent implements OnInit {
     if (this.currentlyEditingTableId && this.currentlyEditingTableId !== table.id) {
       // Se tinha outra tabela aberta, libera o lock dela
       this.lockService.releaseLock(this.currentlyEditingTableId);
-      console.log(`🔓 Lock liberado: ${this.currentlyEditingTableId}`);
     }
 
     // Adquire lock da nova tabela
     this.currentlyEditingTableId = table.id;
     this.lockService.acquireLock(table.id);
-    console.log(`🔒 Lock adquirido ao editar: ${table.id} (${table.name})`);
   }
 
   onTableCollapsed(table: TableDefinition): void {
@@ -360,7 +357,6 @@ export class TableEditorComponent implements OnInit {
     if (this.currentlyEditingTableId === table.id) {
       this.lockService.releaseLock(table.id);
       this.currentlyEditingTableId = null;
-      console.log(`🔓 Lock liberado ao fechar: ${table.id} (${table.name})`);
     }
   }
 
@@ -384,7 +380,6 @@ export class TableEditorComponent implements OnInit {
         indices: table.indices
       }
     };
-    console.log('📤 Enviando atualização de tabela:', update);
     this.socketService.atualizacaoSchema(update, 'update_table_attributes');
   }
 } 

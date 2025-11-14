@@ -31,17 +31,16 @@ export class SchemaApiWebsocketService {
     
     this.socket.connect();
     
-    // Log quando conectado
     this.socket.on('connect', () => {
-      console.log(`✅ WebSocket CONECTADO com ID: ${this.socket.id}`);
+      // WebSocket connected
     });
 
     this.socket.on('disconnect', () => {
-      console.log(`❌ WebSocket DESCONECTADO`);
+      // WebSocket disconnected
     });
 
     this.socket.on('connect_error', (error) => {
-      console.log(`⚠️ WebSocket ERRO DE CONEXÃO:`, error);
+      // WebSocket connection error
     });
 
     // necessário para chamar as funções de escuta
@@ -55,14 +54,11 @@ export class SchemaApiWebsocketService {
 
   //Envia atualização do schema para o servidor
   atualizacaoSchema(schema_update: BaseElement, channel_emit: string) {
-    console.log('Enviando atualização do schema via WebSocket');
-
     this.socket.emit(channel_emit, schema_update);
   }
 
   private toClass<T extends object>(cls: new () => T, data: any): void {
     const received_data = Object.assign(new cls(), data);
-    console.log("📩 Recebido schema atualizado", received_data);
     this.schemaAtualizadoSubject.next(received_data);
   }
   
