@@ -760,7 +760,7 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
   }
 
   private setupMouseTracking(): void {
-    if (!this.diagramElement?.nativeElement) {
+    if (!this.diagramElement?.nativeElement || !this.paper) {
       return;
     }
 
@@ -768,10 +768,20 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
 
     diagramElement.addEventListener('mousemove', (event: MouseEvent) => {
       const rect = diagramElement.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      
+      // Get viewport coordinates
+      const viewportX = event.clientX - rect.left;
+      const viewportY = event.clientY - rect.top;
+      
+      // Convert viewport to paper coordinates (accounting for zoom and pan)
+      const currentTransform = this.paper.translate();
+      const currentScale = this.paper.scale();
+      
+      const paperX = (viewportX - currentTransform.tx) / currentScale.sx;
+      const paperY = (viewportY - currentTransform.ty) / currentScale.sy;
 
-      this.cursorService.updateCursor(x, y);
+      // Send paper coordinates (scale-independent)
+      this.cursorService.updateCursor(paperX, paperY);
     });
 
     diagramElement.addEventListener('mouseleave', () => {
@@ -849,15 +859,18 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
         this.remoteCursorsMap.set(userId, cursorGroup);
       }
 
-      // Converter coordenadas de página para coordenadas do SVG
-      const paperRect = this.paper.svg.getBoundingClientRect();
-      const svgX = cursorData.x - paperRect.left;
-      const svgY = cursorData.y - paperRect.top;
+      // Convert paper coordinates back to viewport coordinates
+      const currentTransform = this.paper.translate();
+      const currentScale = this.paper.scale();
+      
+      // Apply scale and translation (same as: containerRef.current.style.left = `${action.x}px`)
+      const viewportX = (cursorData.x * currentScale.sx) + currentTransform.tx;
+      const viewportY = (cursorData.y * currentScale.sy) + currentTransform.ty;
 
-      // Update position
-      cursorGroup.cursor.setAttribute('transform', `translate(${svgX}, ${svgY})`);
-      cursorGroup.name.setAttribute('x', (svgX + 3).toString());
-      cursorGroup.name.setAttribute('y', (svgY + 25).toString());
+      // Update position with viewport pixels
+      cursorGroup.cursor.setAttribute('transform', `translate(${viewportX}, ${viewportY})`);
+      cursorGroup.name.setAttribute('x', (viewportX + 3).toString());
+      cursorGroup.name.setAttribute('y', (viewportY + 25).toString());
     });
   }
 
