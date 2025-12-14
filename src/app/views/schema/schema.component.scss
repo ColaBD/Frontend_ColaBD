@@ -101,6 +101,7 @@
     }
   }
 
+  .btn-version-history,
   .btn-generate-sql,
   .btn-share {
     background-color: transparent;
@@ -122,6 +123,17 @@
     &:active {
       background-color: #d3ffdd;
       transform: translateY(0);
+    }
+  }
+
+  .btn-version-history {
+    &:hover {
+      background-color: #fff3e0;
+      color: #ff9800;
+    }
+
+    &:active {
+      background-color: #ffe0b2;
     }
   }
 }

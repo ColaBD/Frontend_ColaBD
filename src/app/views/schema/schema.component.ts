@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
+import { jwtDecode } from 'jwt-decode';
 
 import { FooterService } from '../../core/footer/services/footer.service';
 import { CodeEditorComponent } from "./component/code-editor/code-editor.component";
@@ -13,7 +14,10 @@ import { DiagramComponent } from './component/diagram/diagram.component';
 import { SchemaBackendService } from './services/schema-backend.service';
 import { ShareModalComponent } from "./component/share-modal/share-modal.component";
 import { SqlGeneratorModalComponent } from "./component/sql-generator-modal/sql-generator-modal.component";
+import { VersionHistoryModalComponent } from "./component/version-history-modal/version-history-modal.component";
 import { SchemaApiService } from './services/schema-api.service';
+import { VersionControlService } from './services/version-control.service';
+import { LocalStorageService } from '../../core/auth/services/local-storage.service';
 
 @Component({
   selector: 'app-schema',
@@ -27,6 +31,7 @@ import { SchemaApiService } from './services/schema-api.service';
     MatButtonModule,
     ShareModalComponent,
     SqlGeneratorModalComponent,
+    VersionHistoryModalComponent,
   ],
   templateUrl: './schema.component.html',
   styleUrl: './schema.component.scss',
@@ -73,17 +78,24 @@ export class SchemaComponent implements OnInit, OnDestroy {
   isSqlGeneratorModalVisible = false;
   sqlGeneratorSchemaString = '';
 
+  // Version History modal state
+  isVersionHistoryModalVisible = false;
+  currentUserEmail: string = '';
+
   constructor(
     private footerService: FooterService,
     private route: ActivatedRoute,
     private schemaBackendService: SchemaBackendService,
     private schemaApiService: SchemaApiService,
+    private versionControlService: VersionControlService,
+    private localStorageService: LocalStorageService,
   ) { }
 
   ngOnInit() {
     this.footerService.setFooterVisibility(false);
     this.initializeResizablePanels();
     this.loadSchemaFromRoute();
+    this.initializeUserEmail();
   }
 
   ngAfterViewInit() {
@@ -342,6 +354,66 @@ export class SchemaComponent implements OnInit, OnDestroy {
       this.tableEditorComponent.selectedTabIndex = 0; // Ir para aba de tabelas
       // Expandir o accordion da tabela clicada
       this.tableEditorComponent.expandTable(tableId);
+    }
+  }
+
+  // Version History methods
+  private initializeUserEmail() {
+    try {
+      const token = this.localStorageService.getToken();
+      const decodedToken: any = jwtDecode(token);
+      this.currentUserEmail = decodedToken.email || decodedToken.user_name || 'Usuário';
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      this.currentUserEmail = 'Usuário';
+    }
+  }
+
+  openVersionHistoryModal() {
+    // Initialize version control with current schema ID
+    if (this.currentSchemaId) {
+      this.versionControlService.setSchemaId(this.currentSchemaId);
+    }
+    this.isVersionHistoryModalVisible = true;
+  }
+
+  closeVersionHistoryModal() {
+    this.isVersionHistoryModalVisible = false;
+  }
+
+  getCurrentDiagramData(): any {
+    try {
+      if (this.diagramComponent) {
+        return this.diagramComponent.getCurrentDiagramData();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting current diagram data:', error);
+      return null;
+    }
+  }
+
+  onRestoreVersion(versionData: any) {
+    try {
+      if (this.diagramComponent && versionData) {
+        // Atualiza o diagrama localmente com o JSON da versão selecionada
+        this.diagramComponent.loadFromJointJSData(versionData);
+        console.log('Version restored successfully');
+
+        // Em paralelo, atualiza o schema no backend com os dados restaurados
+        if (this.currentSchemaId && Array.isArray(versionData.cells)) {
+          this.schemaApiService.saveSchema(this.currentSchemaId, versionData.cells).subscribe({
+            next: (response) => {
+              console.log('Schema updated with restored version:', response);
+            },
+            error: (error) => {
+              console.error('Error updating schema with restored version:', error);
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring version:', error);
     }
   }
 }

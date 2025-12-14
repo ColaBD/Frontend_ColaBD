@@ -1,0 +1,169 @@
+<!-- Modal Backdrop -->
+<div *ngIf="isVisible" class="modal-backdrop" (click)="onBackdropClick($event)">
+    <!-- Modal Container -->
+    <div class="modal-container" (click)="$event.stopPropagation()">
+        <!-- Modal Header -->
+        <div class="modal-header">
+            <h5 class="modal-title">
+                <i class="bi bi-clock-history me-2"></i>
+                Histórico de versões
+            </h5>
+            <button type="button" class="btn-close" (click)="closeModal()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+            <!-- Version List -->
+            <div class="versions-section">
+                <h6 class="section-title mb-3">Versões salvas</h6>
+
+                <!-- Empty state -->
+                <div *ngIf="versions.length === 0" class="empty-state text-center py-4">
+                    <i class="bi bi-clock-history text-muted mb-2" style="font-size: 3rem;"></i>
+                    <p class="text-muted mb-0">Nenhuma versão salva ainda</p>
+                    <small class="text-muted">Clique em "Salvar versão atual" para criar a primeira versão</small>
+                </div>
+
+                <!-- Version items -->
+                <div *ngIf="versions.length > 0" class="versions-list">
+                    <div 
+                        *ngFor="let version of versions; trackBy: trackVersion" 
+                        class="version-item"
+                        [class.selected]="selectedVersion?.id === version.id"
+                        [class.current]="version.isCurrent"
+                        (click)="onVersionClick(version)">
+                        
+                        <div class="version-icon">
+                            <i class="bi" [ngClass]="version.isCurrent ? 'bi-circle-fill' : 'bi-circle'"></i>
+                        </div>
+
+                        <div class="version-content">
+                            <div class="version-header">
+                                <div class="version-info">
+                                    <span class="version-time">{{ formatDate(version.timestamp) }}</span>
+                                    <span *ngIf="version.isCurrent" class="badge badge-current">Atual</span>
+                                </div>
+                                <button 
+                                    *ngIf="!version.isCurrent"
+                                    class="btn-delete"
+                                    (click)="deleteVersion(version, $event)"
+                                    title="Excluir versão">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+
+                            <div class="version-author">
+                                <i class="bi bi-person-circle me-1"></i>
+                                {{ version.author }}
+                            </div>
+
+                            <div *ngIf="version.comment" class="version-comment">
+                                {{ version.comment }}
+                            </div>
+
+                            <div class="version-timestamp">
+                                {{ formatFullDate(version.timestamp) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Version Preview -->
+            <div *ngIf="selectedVersion" class="version-preview">
+                <div class="preview-header">
+                    <h6>Detalhes da versão</h6>
+                    <button class="btn-close-preview" (click)="selectedVersion = null">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="preview-body">
+                    <div class="preview-info">
+                        <div class="info-item">
+                            <label>Data:</label>
+                            <span>{{ formatFullDate(selectedVersion.timestamp) }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Autor:</label>
+                            <span>{{ selectedVersion.author }}</span>
+                        </div>
+                        <div *ngIf="selectedVersion.comment" class="info-item">
+                            <label>Comentário:</label>
+                            <span>{{ selectedVersion.comment }}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Status:</label>
+                            <span *ngIf="selectedVersion.isCurrent" class="badge badge-current">Versão Atual</span>
+                            <span *ngIf="!selectedVersion.isCurrent" class="badge badge-old">Versão Anterior</span>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        *ngIf="!selectedVersion.isCurrent"
+                        class="btn btn-primary btn-restore w-100 mt-3"
+                        (click)="restoreSelectedVersion()">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>
+                        Restaurar esta versão
+                    </button>
+                </div>
+            </div>
+
+            <!-- Save Version Button (moved to bottom) -->
+            <div class="save-version-section">
+                <button class="btn btn-primary btn-save-version" (click)="openSaveDialog()">
+                    <i class="bi bi-bookmark-plus me-2"></i>
+                    Salvar versão atual
+                </button>
+                <small class="text-muted d-block mt-2">
+                    Salve uma cópia do estado atual do diagrama
+                </small>
+            </div>
+
+            <!-- Save Version Dialog -->
+            <div *ngIf="showSaveDialog" class="save-dialog">
+                <div class="save-dialog-header">
+                    <h6>Nova Versão</h6>
+                </div>
+                <div class="save-dialog-body">
+                    <label for="version-comment" class="form-label">
+                        Comentário (opcional)
+                    </label>
+                    <textarea
+                        id="version-comment"
+                        class="form-control"
+                        [(ngModel)]="newVersionComment"
+                        placeholder="Descreva as mudanças feitas nesta versão..."
+                        rows="3"
+                        maxlength="200"
+                        [disabled]="isSaving">
+                    </textarea>
+                    <small class="text-muted">{{ newVersionComment.length }}/200 caracteres</small>
+                </div>
+                <div class="save-dialog-actions">
+                    <button class="btn btn-secondary btn-sm" (click)="cancelSaveDialog()" [disabled]="isSaving">
+                        Cancelar
+                    </button>
+                    <button class="btn btn-primary btn-sm" (click)="saveCurrentVersion()" [disabled]="isSaving">
+                        <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                        {{ isSaving ? 'Salvando...' : 'Salvar' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+

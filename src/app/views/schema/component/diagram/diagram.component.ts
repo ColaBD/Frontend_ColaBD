@@ -1638,6 +1638,11 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
         };
         
         this.schemaService.updateRelationship(updatedRelationship);
+
+        // Se for N:N, criar tabela intermediária
+        if (newType === RelationshipType.ManyToMany) {
+          this.createIntermediateTableForManyToMany(relationship.sourceTableId, relationship.targetTableId);
+        }
       }
     }
     
@@ -1659,8 +1664,93 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
     }
   }
 
-  // JointJS Data Import Methods
-  
+  private createIntermediateTableForManyToMany(sourceTableId: string, targetTableId: string): void {
+    const sourceTable = this.schemaService.getTablesSnapshot().find(t => t.id === sourceTableId);
+    const targetTable = this.schemaService.getTablesSnapshot().find(t => t.id === targetTableId);
+    
+    if (!sourceTable || !targetTable) {
+      console.error('Não foi possível encontrar as tabelas para criar a tabela intermediária');
+      return;
+    }
+
+    const intermediateTableName = `${sourceTable.name.toLowerCase()}_${targetTable.name.toLowerCase()}`;
+
+    const existingTable = this.schemaService.getTablesSnapshot().find(t => t.name === intermediateTableName);
+    if (existingTable) {
+      console.log('Tabela intermediária já existe:', intermediateTableName);
+      return;
+    }
+
+    const sourcePK = sourceTable.columns.find(col => col.isPrimaryKey);
+    const targetPK = targetTable.columns.find(col => col.isPrimaryKey);
+
+    if (!sourcePK || !targetPK) {
+      console.error('Uma ou ambas as tabelas não têm chave primária definida');
+      return;
+    }
+
+    const intermediateColumns = [
+      {
+        name: `${sourceTable.name.toLowerCase()}_${sourcePK.name.toLowerCase()}`,
+        type: sourcePK.type,
+        length: sourcePK.length,
+        isPrimaryKey: true,
+        isForeignKey: true,
+        isNotNull: true,
+        helpText: `FK para ${sourceTable.name}.${sourcePK.name}`
+      },
+      {
+        name: `${targetTable.name.toLowerCase()}_${targetPK.name.toLowerCase()}`,
+        type: targetPK.type,
+        length: targetPK.length,
+        isPrimaryKey: true,
+        isForeignKey: true,
+        isNotNull: true,
+        helpText: `FK para ${targetTable.name}.${targetPK.name}`
+      }
+    ];
+
+    const sourcePos = sourceTable.position || { x: 100, y: 100 };
+    const targetPos = targetTable.position || { x: 400, y: 100 };
+    const intermediatePosition = {
+      x: (sourcePos.x + targetPos.x) / 2,
+      y: Math.max(sourcePos.y, targetPos.y) + 200
+    };
+
+    const intermediateTable: TableDefinition = {
+      id: '',
+      name: intermediateTableName,
+      columns: intermediateColumns,
+      position: intermediatePosition
+    };
+
+    this.schemaService.addTable(intermediateTable);
+
+    setTimeout(() => {
+      const createdTable = this.schemaService.getTablesSnapshot().find(t => t.name === intermediateTableName);
+      if (createdTable) {
+        this.schemaService.addRelationship({
+          id: '',
+          sourceTableId: sourceTableId,
+          targetTableId: createdTable.id,
+          sourceColumnId: sourcePK.name,
+          targetColumnId: intermediateColumns[0].name,
+          type: RelationshipType.OneToMany
+        });
+
+        this.schemaService.addRelationship({
+          id: '',
+          sourceTableId: targetTableId,
+          targetTableId: createdTable.id,
+          sourceColumnId: targetPK.name,
+          targetColumnId: intermediateColumns[1].name,
+          type: RelationshipType.OneToMany
+        });
+      }
+    }, 100);
+  }
+
+
   loadFromJointJSData(jointjsData: JointJSGraph): void {
     const previousFlagState = this.dadosRecebidos;
     try {
@@ -1968,6 +2058,18 @@ export class DiagramComponent implements AfterViewInit, OnDestroy, OnInit {
       return canvas;
     } catch (error) {
       console.error('Error capturing canvas for save:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get current diagram data (exposed for external use)
+   */
+  getCurrentDiagramData(): any {
+    try {
+      return this.schemaService.exportToJointJSData();
+    } catch (error) {
+      console.error('Error getting current diagram data:', error);
       return null;
     }
   }

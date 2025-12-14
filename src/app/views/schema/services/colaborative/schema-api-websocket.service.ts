@@ -9,7 +9,7 @@ import { BaseElement, CreateTable, DeleteTable, MoveTable, UpdateTable } from '.
 })
 export class SchemaApiWebsocketService {
   public schemaAtualizadoSubject = new Subject<any>();
-  private baseUrl: string = 'https://backend-colabd.onrender.com/';
+  private baseUrl: string = 'http://127.0.0.1:8000/';
   public socket: Socket = io(this.baseUrl, {
     transports: ["websocket"],
     autoConnect: false // evita conectar sem auth
